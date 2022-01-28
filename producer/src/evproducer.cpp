@@ -1,14 +1,16 @@
 #include <iostream>
 #include <fmt/core.h>
+#include <chrono>
 
 #include "libudmabuf.h"
 #include "argparse.hpp"
+
+using namespace std::literals::chrono_literals;
 
 int main(int argc, const char **argv) {
 
    Udmabuf ub;
    unsigned int rxsize = 256;
-   unsigned char *buf;
    unsigned short int *bufusint;
    bool verbose = false;
 
@@ -78,16 +80,16 @@ int main(int argc, const char **argv) {
    fmt::print("I: event producer started\n");
    while(true) {
 
+      // S2MM_LENGTH = set buffer size for DMA transfer
       ub.setRegister(S2MM_LENGTH, rxsize);
 
-      ub.sync(S2MM_ENDPOINT);
+      // wait for data ready
+      ub.sync(S2MM_ENDPOINT, 500us);
 
       if(verbose)
          ub.getStatus(S2MM_ENDPOINT);      
 
-      buf = ub.getBuffer();
-
-	   bufusint = reinterpret_cast<unsigned short int*>(buf);
+	   bufusint = reinterpret_cast<unsigned short int*>(ub.getBuffer());
 
       if(verbose) {
 	      for(unsigned int i=0; i<rxsize/2; i++)

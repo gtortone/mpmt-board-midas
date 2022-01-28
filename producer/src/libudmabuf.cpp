@@ -2,6 +2,8 @@
 #include <string>
 #include <filesystem>
 #include <fstream>
+#include <chrono>
+#include <thread>
 #include <fcntl.h>      // open
 #include <unistd.h>     // close
 #include <fmt/core.h>
@@ -141,7 +143,7 @@ void Udmabuf::getStatus(unsigned int ep) {
    std::cout << std::endl;
 }
 
-void Udmabuf::sync(unsigned int ep) {
+void Udmabuf::sync(unsigned int ep, const std::chrono::microseconds udelay) {
    
    unsigned int addr;
    unsigned int status;   
@@ -158,6 +160,7 @@ void Udmabuf::sync(unsigned int ep) {
    status = getRegister(addr);
    while(!(status & 1<<12) || !(status & 1<<1)) {
       status = getRegister(addr);
+      std::this_thread::sleep_for(udelay);
    }
 }
 
