@@ -2,13 +2,35 @@
 #include <fmt/core.h>
 
 #include "libudmabuf.h"
-#include "argparse.h"
+#include "argparse.hpp"
 
-int main(void) {
+int main(int argc, const char **argv) {
 
    Udmabuf ub;
    unsigned int rxsize = 256;
    unsigned char *buf;
+   unsigned short int *bufusint;
+   bool verbose = false;
+
+   argparse::ArgumentParser program("evproducer");
+
+   program.add_argument("--verbose")
+    .help("print events on stdout")
+    .default_value(false)
+    .implicit_value(true);
+   
+   try {
+      program.parse_args(argc, argv);
+   } catch (const std::runtime_error& err) {
+      std::cerr << err.what() << std::endl;
+      std::cerr << program;
+      return EXIT_FAILURE;
+   }
+
+   verbose = program.get<bool>("--verbose");
+
+   if(verbose)
+      fmt::print("I: verbose ON\n");
 
    if(!ub.openUIO("dma")) {
       std::cout << "E: UIO error" << std::endl;
@@ -30,9 +52,12 @@ int main(void) {
       return EXIT_FAILURE;
    }
 
-   ub.getStatus(S2MM_ENDPOINT);
+   fmt::print("I: inizialization done\n");
 
-   fmt::print("S2MM.DMACR = 0x{:8X}\n", ub.getRegister(S2MM_CONTROL_REGISTER));    
+   if(verbose) {
+      ub.getStatus(S2MM_ENDPOINT);
+      fmt::print("S2MM.DMACR = 0x{:8X}\n", ub.getRegister(S2MM_CONTROL_REGISTER));    
+   }
 
    // S2MM_DMACR[2] = 1 : reset not in progress - normal operation
    ub.setRegister(S2MM_CONTROL_REGISTER, 4);
@@ -50,24 +75,26 @@ int main(void) {
    // S2MM_DMACR[15] = 1 : [reserved] - no effect
    ub.setRegister(S2MM_CONTROL_REGISTER, 0xf001);
 
+   fmt::print("I: event producer started\n");
    while(true) {
 
       ub.setRegister(S2MM_LENGTH, rxsize);
 
       ub.sync(S2MM_ENDPOINT);
 
-      ub.getStatus(S2MM_ENDPOINT);      
+      if(verbose)
+         ub.getStatus(S2MM_ENDPOINT);      
 
       buf = ub.getBuffer();
 
-      unsigned short int *bufusint;
-
 	   bufusint = reinterpret_cast<unsigned short int*>(buf);
 
-	   for(unsigned int i=0; i<rxsize/2; i++)
-	      fmt::print("{:04X} ", bufusint[i]);
+      if(verbose) {
+	      for(unsigned int i=0; i<rxsize/2; i++)
+	         fmt::print("{:04X} ", bufusint[i]);
 
-      fmt::print("\n");
+         fmt::print("\n");
+      }
    }
 
    ub.closeDMABuffer();
