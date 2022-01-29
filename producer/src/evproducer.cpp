@@ -1,11 +1,18 @@
 #include <iostream>
 #include <fmt/core.h>
 #include <chrono>
+#include <zmq_addon.hpp>
 
 #include "libudmabuf.h"
 #include "argparse.hpp"
 
 using namespace std::literals::chrono_literals;
+
+void myfree (void *data, void *hint) {
+   // we are working with CMA memory, so we don't need
+   // to free buffers here...
+   return;
+}
 
 int main(int argc, const char **argv) {
 
@@ -77,6 +84,11 @@ int main(int argc, const char **argv) {
    // S2MM_DMACR[15] = 1 : [reserved] - no effect
    ub.setRegister(S2MM_CONTROL_REGISTER, 0xf001);
 
+   // zmq initialization
+   zmq::context_t ctx;
+   zmq::socket_t sock(ctx, zmq::socket_type::pair);
+   sock.connect("tcp://lxgentor:5555");
+
    fmt::print("I: event producer started\n");
    while(true) {
 
@@ -90,6 +102,8 @@ int main(int argc, const char **argv) {
          ub.getStatus(S2MM_ENDPOINT);      
 
 	   bufusint = reinterpret_cast<unsigned short int*>(ub.getBuffer());
+      zmq::message_t z_out(bufusint, rxsize/2, myfree);
+      sock.send(z_out, zmq::send_flags::dontwait);
 
       if(verbose) {
 	      for(unsigned int i=0; i<rxsize/2; i++)
@@ -99,7 +113,10 @@ int main(int argc, const char **argv) {
       }
    }
 
+   sock.close();
+   ctx.close();
    ub.closeDMABuffer();
+   
 
    return EXIT_SUCCESS;
 }
