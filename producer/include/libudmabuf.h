@@ -70,6 +70,7 @@ public:
    void getStatus(unsigned int ep);
    unsigned long getPhysicalAddress(void) { return phys_addr; };
    unsigned char * getBuffer(void) { return buf; };
+   unsigned int getBufferSize(void) { return buf_size; };
    void sync(unsigned int ep, const std::chrono::microseconds udelay);
    bool setSyncArea(unsigned int offset, unsigned int size, unsigned int direction);
    bool setBufferOwner(unsigned int owner);
