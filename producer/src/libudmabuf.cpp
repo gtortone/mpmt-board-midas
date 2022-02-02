@@ -223,3 +223,36 @@ bool Udmabuf::setBufferOwner(unsigned int owner) {
 
    return true;
 }
+
+/*
+sync_mode=0: CPU cache is enabled regardless of the O_SYNC flag presense.
+sync_mode=1: If O_SYNC is specified, CPU cache is disabled. If O_SYNC is not specified, CPU cache is enabled.
+sync_mode=2: If O_SYNC is specified, CPU cache is disabled but CPU uses write-combine when writing data to DMA buffer 
+             improves performance by combining multiple write accesses. If O_SYNC is not specified, CPU cache is enabled.
+sync_mode=3: If O_SYNC is specified, DMA coherency mode is used. If O_SYNC is not specified, CPU cache is enabled.
+sync_mode=4: CPU cache is enabled regardless of the O_SYNC flag presense.
+sync_mode=5: CPU cache is disabled regardless of the O_SYNC flag presense.
+sync_mode=6: CPU uses write-combine to write data to DMA buffer regardless of O_SYNC presence.
+sync_mode=7: DMA coherency mode is used regardless of O_SYNC presence.
+*/
+
+bool Udmabuf::setSyncMode(unsigned int mode) {
+
+   std::string filename;
+   std::fstream f;
+
+   if(mode < 0 || mode > 7)
+      return false;
+
+   filename = fmt::format("{}/sync_mode", sys_class_path);
+   f.open(filename, std::fstream::out);
+   if(!f.is_open()) {
+      std::cout << "E: can not open " << filename << std::endl;
+      return false;
+   }
+   f << mode;
+   f.close();
+
+   return true;
+}
+

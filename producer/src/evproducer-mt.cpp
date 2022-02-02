@@ -15,6 +15,7 @@ unsigned int rdoff = 0;
 unsigned int bufsize = 0;
 
 // command line arguments
+bool debug = false;
 bool verbose = false;
 std::string host;
 int port;
@@ -35,10 +36,12 @@ auto writer = [](std::string thread_id, Udmabuf ub) {
 
       // wait if ring buffer is full
       while(wroff == ((rdoff - rxsize) % bufsize)) {
-         if(!sleeping)
-            fmt::print("W: S\n");
-         sleeping = true;
-         fmt::print(".");
+         if(debug) {
+            if(!sleeping)
+               fmt::print("W: S\n");
+            sleeping = true;
+            fmt::print(".");
+         }
          std::this_thread::sleep_for(100us);
       }
 
@@ -54,7 +57,9 @@ auto writer = [](std::string thread_id, Udmabuf ub) {
       ub.sync(S2MM_ENDPOINT, 500us);
 
       wroff = (wroff + rxsize) % bufsize;
-      fmt::print("W: offset={:d}\n", wroff);
+
+      if(debug)
+         fmt::print("W: offset={:d}\n", wroff);
 
       if(verbose)
          ub.getStatus(S2MM_ENDPOINT);
@@ -72,30 +77,34 @@ auto reader = [](std::string thread_id, unsigned char *buffer) {
 
       // wait if ring buffer is empty
       while(rdoff == wroff) {
-         if(!sleeping)
-            fmt::print("R: S");
-         sleeping = true;
-         fmt::print(".");
+         if(debug) {
+            if(!sleeping)
+               fmt::print("R: S");
+            sleeping = true;
+            fmt::print(".");
+         }
          std::this_thread::sleep_for(100us);
       }
 
       sleeping = false;
 
-      unsigned int *bufint;
-      bufint = reinterpret_cast<unsigned int*>(buffer + rdoff);
+      unsigned short int *bufusint;
+      bufusint = reinterpret_cast<unsigned short int*>(buffer + rdoff);
 
       if(verbose) {
-         for(unsigned int i=0; i<rxsize/4; i++)
-            fmt::print("{:04X} {:04X} ", (bufint[i] & 0xFFFF0000) >> 16, bufint[i] & 0x0000FFFF);
+         for(unsigned int i=0; i<rxsize/2; i++)
+            fmt::print("{:04X} ", bufusint[i]);
          fmt::print("\n");
       }
 
       // send event
-      zmq::message_t z_out(bufint, rxsize/2, myfree);
+      zmq::message_t z_out(bufusint, rxsize/2, myfree);
       sock.send(z_out, zmq::send_flags::dontwait);
 
       rdoff = (rdoff + rxsize) % bufsize;
-      fmt::print("R: offset={:d}\n", rdoff);
+   
+      if(debug)
+         fmt::print("R: offset={:d}\n", rdoff);
    }
 };
 
@@ -104,6 +113,11 @@ int main(int argc, const char **argv) {
    Udmabuf ub;
 
    argparse::ArgumentParser program("evproducer");
+
+   program.add_argument("--debug")
+    .help("enable debug")
+    .default_value(false)
+    .implicit_value(true);
 
    program.add_argument("--verbose")
     .help("print events on stdout")
@@ -128,6 +142,7 @@ int main(int argc, const char **argv) {
       return EXIT_FAILURE;
    }
 
+   debug = program.get<bool>("--debug");
    verbose = program.get<bool>("--verbose");
    host = program.get<std::string>("--host");
    port = program.get<int>("--port");
@@ -140,22 +155,19 @@ int main(int argc, const char **argv) {
       return EXIT_FAILURE;
    }
 
+   // use CPU cache without O_SYNC flag
    if(!ub.openDMABuffer("udmabuf0", true)) {
       std::cout << "E: udmabuf error" << std::endl;
       return EXIT_FAILURE;
    }
 
-   if(!ub.setSyncArea(0, rxsize, DMA_FROM_DEVICE)) {
-      std::cout << "E: setSyncArea error" << std::endl;
+   // set DMA coherency mode
+   if(!ub.setSyncMode(7)) {
+      std::cout << "E: udmabuf sync mode error" << std::endl;
       return EXIT_FAILURE;
    }
 
-   if(!ub.setBufferOwner(CPU_OWNER)) {
-      std::cout << "E: setBufferOwner error" << std::endl;
-      return EXIT_FAILURE;
-   }
-
-   fmt::print("I: inizialization done\n");
+   fmt::print("I: initialization done\n");
 
    if(verbose) {
       ub.getStatus(S2MM_ENDPOINT);

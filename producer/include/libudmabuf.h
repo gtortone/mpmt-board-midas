@@ -74,6 +74,7 @@ public:
    void sync(unsigned int ep, const std::chrono::microseconds udelay);
    bool setSyncArea(unsigned int offset, unsigned int size, unsigned int direction);
    bool setBufferOwner(unsigned int owner);
+   bool setSyncMode(unsigned int mode);
 };
 
 #endif
