@@ -9,7 +9,7 @@
 
 using namespace std::literals::chrono_literals;
 
-unsigned int rxsize = 256;
+unsigned int rxsize = 8192;
 unsigned int wroff = 0;
 unsigned int rdoff = 0;
 unsigned int bufsize = 0;

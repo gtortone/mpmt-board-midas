@@ -63,6 +63,7 @@ public:
 
    Udmabuf(void);
    bool openUIO(std::string name);
+   unsigned int waitUIOInterrupt(void);
    bool openDMABuffer(std::string bufname, bool cache_on);
    bool closeDMABuffer(void);
    void setRegister(int addr, unsigned int value); 

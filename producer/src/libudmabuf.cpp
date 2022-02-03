@@ -30,6 +30,7 @@ bool Udmabuf::openUIO(std::string name) {
          std::string uiodev = fmt::format("/dev/{}", file.path().filename().string()); 
          uiofd = open(uiodev.data(), O_RDWR);
          uiomem = (volatile unsigned int*)mmap(NULL, 65535, PROT_READ|PROT_WRITE, MAP_SHARED, uiofd, 0);
+
          return true;
       }
    }
@@ -256,3 +257,16 @@ bool Udmabuf::setSyncMode(unsigned int mode) {
    return true;
 }
 
+unsigned int Udmabuf::waitUIOInterrupt(void) {
+
+   int count;
+   unsigned int en = 1;
+   
+   // enable general uio interrupt
+   write(uiofd, (void *)&en, sizeof(int));
+
+   // blocking read till interrupt received and return interrupt count
+   read(uiofd, (void *)&count, sizeof(int));
+
+   return count;
+}
