@@ -3,7 +3,7 @@
 ## Index
 [Zynq-ARM event producer](#zynq-arm-event-producer)\
 [MIDAS Frontend](#midas-frontend)\
-[MIDAS Event data format](#midas-data-format)
+[MIDAS Event data format](#midas-event-data-format)
 
 ## Introduction
 
@@ -49,12 +49,46 @@ Optional arguments:
 
 ## MIDAS frontend
 
-MIDAS frontend runs on multiprocessor/multicore host. Data sent by event producer is received from ZMQ proxy (router / pull) and fetched by configurable number of threads that extract events from buffer, parse and store them on disk. An additional thread is used to synchronize MIDAS run control with remote producers.
+MIDAS frontend runs on multiprocessor/multicore host. Data sent by event producer is received from ZMQ proxy (router / pull) and fetched by configurable number of threads that extract events from buffer, parse and store them on disk. 
+
+An additional thread is used to synchronize MIDAS run control with remote producers.
 
 | data | port | direction | ZMQ socket |
 |------|------|-----------|------------|
 |event buffer| 5555 (default) | in/out | proxy(router/push) |
 |run control | 4444 | out | publisher |
 
+## MIDAS Event data format
 
+A single MPMT producer includes 19 channels (0...18).
 
+Raw events collected by MIDAS frontend are organized with MIDAS event format, each word is 16 bit:
+
+- Event data start with event header:
+```
+Evid:0001- Mask:0000- Serial:639- Time:0x6200f2f6
+```
+`Evid`: event id - type of event\
+`Mask`: trigger mask\
+`Serial`: progressive number (provided by MIDAS)\
+`Time`: UNIX timestamp (provided by MIDAS)
+
+- Each PMT event is included in `PMT` bank and inside a bank data are organized as follow:
+
+`ID`:  MPMT id\
+`CH`:  MPMT channel\
+`UX`:  UNIX timestamp (16 bit)\
+`TCH`: TDC coarse H (@5ns)\
+`TCL`: TDC coarse L (@5ns)\
+`TF`:  TDC fine\
+`TWC`: Time width coarse\
+`TWF`: Time width fine\
+`ADC`: ADC value
+
+```
+Bank:PMT
+   1-> 0x0001 0x0006 0x3320 0x0180 0x9112 0x0006 0x0008 0x0005
+       (ID)   (CH)   (UX)   (TCH)  (TCL)  (TF)   (TWC)  (TWF)
+   9-> 0x0221
+       (ADC)
+```
