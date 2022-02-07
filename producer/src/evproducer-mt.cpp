@@ -85,7 +85,7 @@ auto writer = [](std::string thread_id, Udmabuf ub) {
          ub.setRegister(S2MM_LENGTH, rxsize);
 
          // wait for data ready
-         ub.sync(S2MM_ENDPOINT, 500us);
+         ub.sync(S2MM_ENDPOINT, 5us);
 
          wroff = (wroff + rxsize) % bufsize;
 
@@ -104,6 +104,7 @@ auto reader = [](std::string thread_id, unsigned char *buffer) {
 
    bool sleeping = false;
    zmq::socket_t sock(ctx, zmq::socket_type::dealer);
+   unsigned short int *bufusint;
 
    if(mode == "remote") {
       const std::string url = fmt::format("tcp://{}:{}", host, port);
@@ -126,7 +127,6 @@ auto reader = [](std::string thread_id, unsigned char *buffer) {
 
       sleeping = false;
 
-      unsigned short int *bufusint;
       bufusint = reinterpret_cast<unsigned short int*>(buffer + rdoff);
 
       if(verbose) {
@@ -140,11 +140,11 @@ auto reader = [](std::string thread_id, unsigned char *buffer) {
          zmq::message_t z_out(bufusint, rxsize/2, myfree);
          sock.send(z_out, zmq::send_flags::dontwait);
       }
-
-      rdoff = (rdoff + rxsize) % bufsize;
    
       if(debug)
          fmt::print("R: offset={:d}\n", rdoff);
+
+      rdoff = (rdoff + rxsize) % bufsize;      
    }
 };
 
@@ -152,7 +152,7 @@ int main(int argc, const char **argv) {
 
    Udmabuf ub;
 
-   argparse::ArgumentParser program("evproducer");
+   argparse::ArgumentParser program("evproducer-mt");
 
    program.add_argument("--local")
     .default_value(false)
