@@ -17,7 +17,7 @@
 /*-- Globals -------------------------------------------------------*/
 
 /* The frontend name (client name) as seen by other MIDAS clients   */
-const char *frontend_name = "MPMT-fe";
+const char *frontend_name = "MPMT";
 /* The frontend file name, don't change it */
 const char *frontend_file_name = __FILE__;
 
@@ -63,7 +63,7 @@ void equip_data_init(void);
 BOOL equipment_common_overwrite = TRUE;
 
 EQUIPMENT equipment[] = {
-      {"MPMT%02d-data",  /* equipment name */
+      {"MPMT%02d",  /* equipment name */
       {  
          1, 0,                   /* event ID, trigger mask */
          "SYSTEM",               /* event buffer */
