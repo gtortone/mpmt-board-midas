@@ -15,3 +15,16 @@ MPMT DAQ software is composed by two parts:
 - Midas frontend
 
 ## Zynq-ARM event producer
+
+Event producer runs on embedded ARM on Zynq FPGA. It uses udmabuf (https://github.com/ikwzm/udmabuf) to transfer data from FPGA to RAM and ZMQ (https://github.com/zeromq) to send data through network.
+
+Due to limited performance of Zynq-ARM data is not parsed and transferred directly to MIDAS frontend. Two threads provide decoupling of data fetching loop from RAM and network data sending and a separate thread receives run control commands (start/stop) through a ZMQ socket from MIDAS frontend.
+
+Data sent to MIDAS frontend is composed by id of MPMT followed by fixed size buffer configured on FPGA.
+
+| data | port | direction | ZMQ socket |
+|------|------|-----------|------------|
+|event buffer| 5555 (default) | out | dealer |
+|run control | 4444 | in | subscriber |
+
+### Usage of event producer
