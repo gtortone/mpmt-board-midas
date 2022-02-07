@@ -1,7 +1,7 @@
 # MPMT FrontEnd for MIDAS DAQ
 
 ## Index
-[Zynq-ARM event producer](#arm-event-producer)\
+[Zynq-ARM event producer](#zynq-arm-event-producer)\
 [MIDAS Frontend](#midas-frontend)\
 [MIDAS Event data format](#midas-data-format)
 
@@ -12,7 +12,7 @@ This MIDAS frontend collects events from multiple MPMT then through MIDAS flow d
 MPMT DAQ software is composed by two parts:
 
 - Zynq-ARM event producer
-- Midas frontend
+- MIDAS frontend
 
 ## Zynq-ARM event producer
 
@@ -45,6 +45,16 @@ Optional arguments:
 --host       	receiver hostname
 --port       	receiver port [default: 5555]
 --id         	MPMT id [default: 1]
-
 ```
+
+## MIDAS frontend
+
+MIDAS frontend runs on multiprocessor/multicore host. Data sent by event producer is received from ZMQ proxy (router / pull) and fetched by configurable number of threads that extract events from buffer, parse and store them on disk. An additional thread is used to synchronize MIDAS run control with remote producers.
+
+| data | port | direction | ZMQ socket |
+|------|------|-----------|------------|
+|event buffer| 5555 (default) | in/out | proxy(router/push) |
+|run control | 4444 | out | publisher |
+
+
 
