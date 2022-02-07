@@ -1,8 +1,7 @@
 
 # Target
 BIN_DIR = bin
-BIN1 = $(BIN_DIR)/evproducer
-BIN2 = $(BIN_DIR)/evproducer-mt
+BIN = $(BIN_DIR)/evproducer-mt
 
 # Match all sources in src direcotry
 SRCS_DIR = src
@@ -38,22 +37,17 @@ MKDIR = mkdir -p
 .PHONY: all clean
 
 # Rules
-all: $(BIN1) $(BIN2)
+all: $(BIN)
 
 $(OBJS_DIR)/%.o: $(SRCS_DIR)/%.cpp
 	@$(MKDIR) $(dir $@)
 	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIRS) -c $< -o $@
 
-$(BIN1): obj/evproducer.o obj/libudmabuf.o
+$(BIN): obj/evproducer-mt.o obj/libudmabuf.o
 	@$(MKDIR) $(dir $@)
 	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	strip $(BIN1) 
-
-$(BIN2): obj/evproducer-mt.o obj/libudmabuf.o
-	@$(MKDIR) $(dir $@)
-	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
-	strip $(BIN2) 
+	strip $(BIN) 
 
 clean:
-	@$(RM) $(BIN1) $(BIN2)
+	@$(RM) $(BIN)
 	@$(RM) $(OBJS)
