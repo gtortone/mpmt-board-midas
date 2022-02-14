@@ -161,8 +161,8 @@ void Udmabuf::sync(unsigned int ep, const std::chrono::microseconds udelay) {
    int i = 1;
    status = getRegister(addr);
    while(!(status & 1<<12) || !(status & 1<<1)) {
-      status = getRegister(addr);
       std::this_thread::sleep_for(udelay * i++);
+      status = getRegister(addr);
    }
 }
 
