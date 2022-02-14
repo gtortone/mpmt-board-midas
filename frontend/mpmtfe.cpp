@@ -36,7 +36,7 @@ INT max_event_size_frag = 5 * 1024 * 1024;
 /* buffer size to hold events */
 INT event_buffer_size = 100 * 1000000;    // 100 MB
 
-#define NUM_THREADS	2
+#define NUM_THREADS	4
 
 MUTEX_T *odbmutex = NULL;
 

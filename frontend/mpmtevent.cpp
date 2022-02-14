@@ -27,8 +27,8 @@ std::string MpmtEvent::sanityCheck() {
    else if(tail() != EOE)
       return "End of Event error";
    else if(CRC() != getCRC())
-      return "CRC error";
-
+      return fmt::format("CRC error: exp({:02X}) calc({:02X}) ev({:04X} {:04X} {:04X} {:04X} {:04X} {:04X} {:04X} {:04X})", \
+         getCRC(), CRC(), event[0], event[1], event[2], event[3], event[4], event[5], event[6], event[7]);
    return "";
 }
 
@@ -37,7 +37,7 @@ unsigned char MpmtEvent::CRC(void) {
    unsigned char *buf = reinterpret_cast<unsigned char *>(event.data());
    unsigned short int crc = buf[2];
 
-   for(int i=3; i<EVENT_BYTELEN - 3; i++) {
+   for(int i=3; i<EVENT_BYTELEN - 2; i++) {
       if(i == EVENT_BYTELEN - 4)
          continue;
       crc ^= buf[i];
