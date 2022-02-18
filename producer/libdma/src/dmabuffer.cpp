@@ -1,50 +1,29 @@
 #include <iostream>
-#include <string>
-#include <filesystem>
-#include <fstream>
-#include <chrono>
-#include <thread>
 #include <fcntl.h>      // open
 #include <unistd.h>     // close
+#include <filesystem>
+#include <fstream>
 #include <fmt/core.h>
 #include <sys/mman.h>
 
-#include "libudmabuf.h"
+#include "dmabuffer.h"
 
-Udmabuf::Udmabuf(void) {
-   dmafd = -1;
+DMABuffer::DMABuffer(void) {
+   fd = -1;
 }
 
-bool Udmabuf::openUIO(std::string name) {
-
-   for (const auto &file : std::filesystem::recursive_directory_iterator("/sys/class/uio/")) {
-      const std::string uioname = fmt::format("{}/name", file.path().string());
-      std::fstream f(uioname, std::fstream::in);
-      if(!f.is_open())
-         return false;
-
-      std::string label;
-      std::getline(f, label);
-
-      if(label == name) {
-         std::string uiodev = fmt::format("/dev/{}", file.path().filename().string()); 
-         uiofd = open(uiodev.data(), O_RDWR);
-         uiomem = (volatile unsigned int*)mmap(NULL, 65535, PROT_READ|PROT_WRITE, MAP_SHARED, uiofd, 0);
-
-         return true;
-      }
-   }
-
-   return false;
+DMABuffer::~DMABuffer(void) {
+   if(fd != -1)
+      close();
 }
 
-bool Udmabuf::openDMABuffer(std::string bufname, bool cache_on) {
+bool DMABuffer::open(std::string bufname, bool cache_on) {
 
    std::vector<std::string> sys_class_path_list = {"/sys/class/u-dma-buf", "/sys/class/udmabuf"};
 
    bool found = false;
    for (auto& dir : sys_class_path_list) {
-      
+
       std::string subdir = fmt::format("{0}/{1}", dir, bufname);
       std::filesystem::directory_entry entry(subdir.data());
       if(entry.is_directory()) {
@@ -84,90 +63,29 @@ bool Udmabuf::openDMABuffer(std::string bufname, bool cache_on) {
    f.close();
 
    filename = fmt::format("/dev/{}", name);
-   if((dmafd = open(filename.data(), O_RDWR | ((cache_on == 0)? O_SYNC : 0))) == -1) {
+   if((fd = ::open(filename.data(), O_RDWR | ((cache_on == 0)? O_SYNC : 0))) == -1) {
       std::cout << "E: can not open " << filename << std::endl;
       return false;
    }
 
-   buf = (unsigned char *) mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, dmafd, 0);
-   debug_vma = 0;
+   buf = (unsigned char *) mmap(NULL, buf_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
    sync_mode = 1;
 
    return true;
-} 
+}
 
-bool Udmabuf::closeDMABuffer(void) {
-   if(dmafd < 0)
+bool DMABuffer::close(void) {
+
+   if(fd < 0)
       return false;
 
-   close(dmafd);
-   dmafd = -1;
+   ::close(fd);
+   fd = -1;
    return true;
 }
 
-void Udmabuf::setRegister(int addr, unsigned int value) {
-   uiomem[addr>>2] = value;   
-}
+bool DMABuffer::setSyncArea(unsigned int offset, unsigned int size, unsigned int direction) {
 
-unsigned int Udmabuf::getRegister(int addr) {
-   return uiomem[addr>>2];
-}
-
-void Udmabuf::getStatus(unsigned int ep) {
-   
-   unsigned int status;
-   std::string msg;
-
-   if(ep == S2MM_ENDPOINT) {
-      status = getRegister(S2MM_STATUS_REGISTER);
-      fmt::print("Stream to memory-mapped status (0x{:08x}@0x{:02x}): ", status, S2MM_STATUS_REGISTER);
-   } else if(ep == MM2S_ENDPOINT) {
-      status = getRegister(MM2S_STATUS_REGISTER);
-      fmt::print("Memory-mapped to stream status (0x{:08x}@0x{:02x}): ", status, MM2S_STATUS_REGISTER);
-   } else { 
-      std::cout << "E: endpoint not valid" << std::endl;
-      return;
-   }
-
-   if (status & 0x00000001) std::cout << " halted"; else std::cout << " running";
-   if (status & 0x00000002) std::cout << " idle";
-   if (status & 0x00000008) std::cout << " SGIncld";
-   if (status & 0x00000010) std::cout << " DMAIntErr";
-   if (status & 0x00000020) std::cout << " DMASlvErr";
-   if (status & 0x00000040) std::cout << " DMADecErr";
-   if (status & 0x00000100) std::cout << " SGIntErr";
-   if (status & 0x00000200) std::cout << " SGSlvErr";
-   if (status & 0x00000400) std::cout << " SGDecErr";
-   if (status & 0x00001000) std::cout << " IOC_Irq";
-   if (status & 0x00002000) std::cout << " Dly_Irq";
-   if (status & 0x00004000) std::cout << " Err_Irq";
-   std::cout << std::endl;
-}
-
-void Udmabuf::sync(unsigned int ep, const std::chrono::microseconds udelay) {
-   
-   unsigned int addr;
-   unsigned int status;   
-
-   if(ep == S2MM_ENDPOINT) {
-      addr = S2MM_STATUS_REGISTER;
-   } else if(ep == MM2S_ENDPOINT) {
-      addr = S2MM_STATUS_REGISTER;
-   } else {
-      std::cout << "E: endpoint not valid" << std::endl;
-      return;
-   }
-
-   int i = 1;
-   status = getRegister(addr);
-   while(!(status & 1<<12) || !(status & 1<<1)) {
-      std::this_thread::sleep_for(udelay * i++);
-      status = getRegister(addr);
-   }
-}
-
-bool Udmabuf::setSyncArea(unsigned int offset, unsigned int size, unsigned int direction) {
-     
    std::string filename;
    std::fstream f;
 
@@ -197,11 +115,11 @@ bool Udmabuf::setSyncArea(unsigned int offset, unsigned int size, unsigned int d
    }
    f << direction;
    f.close();
- 
+
    return true;
 }
 
-bool Udmabuf::setBufferOwner(unsigned int owner) {
+bool DMABuffer::setBufferOwner(unsigned int owner) {
 
    std::string filename;
    std::fstream f;
@@ -238,8 +156,7 @@ sync_mode=6: CPU uses write-combine to write data to DMA buffer regardless of O_
 sync_mode=7: DMA coherency mode is used regardless of O_SYNC presence.
 */
 
-bool Udmabuf::setSyncMode(unsigned int mode) {
-
+bool DMABuffer::setSyncMode(unsigned int mode) {
    std::string filename;
    std::fstream f;
 
@@ -256,18 +173,4 @@ bool Udmabuf::setSyncMode(unsigned int mode) {
    f.close();
 
    return true;
-}
-
-unsigned int Udmabuf::waitUIOInterrupt(void) {
-
-   int count;
-   unsigned int en = 1;
-   
-   // enable general uio interrupt
-   write(uiofd, (void *)&en, sizeof(int));
-
-   // blocking read till interrupt received and return interrupt count
-   read(uiofd, (void *)&count, sizeof(int));
-
-   return count;
 }

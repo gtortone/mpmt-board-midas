@@ -31,9 +31,6 @@
 *.out
 *.app
 
-ddma-producer/bin
-sgdma-producer/bin
-ddma-producer/obj
-sgdma-producer/obj
+producer/build
 frontend/mpmtfe
 frontend/midas.log
