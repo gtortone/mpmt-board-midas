@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <zmq.hpp>
 #include <iostream>
 #include <valarray>
@@ -18,6 +17,7 @@
 
 /* The frontend name (client name) as seen by other MIDAS clients   */
 const char *frontend_name = "MPMT";
+
 /* The frontend file name, don't change it */
 const char *frontend_file_name = __FILE__;
 
@@ -28,13 +28,13 @@ BOOL frontend_call_loop = FALSE;
 INT display_period = 0;
 
 /* maximum event size produced by this frontend */
-INT max_event_size = 100000;
+INT max_event_size = 100;
 
 /* maximum event size for fragmented events (EQ_FRAGMENTED) */
-INT max_event_size_frag = 5 * 1024 * 1024;
+INT max_event_size_frag = 100;
 
 /* buffer size to hold events */
-INT event_buffer_size = 100 * 1000000;    // 100 MB
+INT event_buffer_size = 100 * 1024 * 1024;    // 100 MB
 
 #define NUM_THREADS	4
 
@@ -92,10 +92,7 @@ INT proxy_thread(void *param) {
    zmq::socket_t backend(context, zmq::socket_type::push);
    backend.bind("inproc://events");
 
-   while (!readout_enabled())
-      ss_sleep(1000);
    printf("ZMQ proxy start...\n");
-
    zmq::proxy(frontend, backend, zmq::socket_ref());
 
    return 0;
@@ -103,10 +100,10 @@ INT proxy_thread(void *param) {
 
 INT monitor_thread(void *param) {
 
-   zmq::socket_t control(context, zmq::socket_type::pub);
    socketMonitor mon;
-   INT cur_state = run_state;
    std::string cmd;
+   INT cur_state = run_state;
+   zmq::socket_t control(context, zmq::socket_type::pub);
 
    /* create ZMQ control socket */
    control.bind("tcp://0.0.0.0:4444");
@@ -127,17 +124,19 @@ INT monitor_thread(void *param) {
             control.send(payload, zmq::send_flags::none);
             mon.eventID = 0;
          }
-      }
 
+      }
+      
       if(run_state != cur_state) {
-
-         cmd = (run_state == STATE_RUNNING)?"start":"stop";
-         zmq::message_t topic(std::string("control"));
-         control.send(topic, zmq::send_flags::sndmore);
-         zmq::message_t payload(cmd);
-         control.send(payload, zmq::send_flags::none);
-         cur_state = run_state;
+            cmd = (run_state == STATE_RUNNING)?"start":"stop";
+            zmq::message_t topic(std::string("control"));
+            control.send(topic, zmq::send_flags::sndmore);
+            zmq::message_t payload(cmd);
+            control.send(payload, zmq::send_flags::none);
+            cur_state = run_state;
       }
+
+      ss_sleep(1000);
    }
 }
 
@@ -281,6 +280,11 @@ INT trigger_thread(void *param) {
 
    /* tell framework that we are alive */
    signal_readout_thread_active(index, TRUE);
+
+   /* set all rb_get_xx to nonblocking. Needed in multi-thread
+      environments for stopping all threads without deadlock
+   */
+   rb_set_nonblocking();
    
    /* Initialize hardware here ... */
    printf("Start readout thread %d\n", index);
@@ -288,6 +292,7 @@ INT trigger_thread(void *param) {
    /* Obtain ring buffer for inter-thread data exchange */
    rbh = get_event_rbh(index);
 
+   /* main loop */
    while (is_readout_thread_enabled()) {
 
       if (!readout_enabled()) {
@@ -308,6 +313,9 @@ INT trigger_thread(void *param) {
 
 #ifdef DEBUG
       fmt::print("--- frame received: {} bytes\n", recv_msgs[1].size());
+      int nbytes;
+      rb_get_buffer_level(rbh, &nbytes);
+      fmt::print("[{}] rb level {}\n", index, nbytes);
 #endif
 
       size_t i = 0;
@@ -316,8 +324,9 @@ INT trigger_thread(void *param) {
          /* obtain buffer space */
          do {
             status = rb_get_wp(rbh, (void **) &pevent, 0);
-            if (status == DB_TIMEOUT)
+            if (status == DB_TIMEOUT) {
                ss_sleep(10);
+            }
          } while (status != DB_SUCCESS);
 
          ev.load((unsigned char *) recv_msgs[1].data() + i);
@@ -335,6 +344,7 @@ INT trigger_thread(void *param) {
          }
 
          bm_compose_event_threadsafe(pevent, 1, 0, 0, &equipment[0].serial_number);
+
          pbank = (WORD *)(pevent + 1);
 
          /* init bank structure */
@@ -363,8 +373,8 @@ INT trigger_thread(void *param) {
          pevent->data_size = bk_size(pbank);
          
          /* send event to ring buffer */
-         rb_increment_wp(rbh, sizeof(EVENT_HEADER) + pevent->data_size);
-      
+         status = rb_increment_wp(rbh, sizeof(EVENT_HEADER) + pevent->data_size);
+
       }  // end while on message.size()
 
    } // end while
