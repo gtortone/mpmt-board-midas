@@ -1,0 +1,3 @@
+[submodule "producer/libaxidma"]
+	path = producer/libaxidma
+	url = https://github.com/gtortone/libaxidma
