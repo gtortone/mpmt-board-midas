@@ -143,7 +143,7 @@ int main(int argc, const char **argv) {
       fmt::print("E: error opening /dev/{}\n", UDMABUF_NAME);
       return EXIT_FAILURE;
    }
-   memset(dbuf.buf, 0, dbuf.size());
+   memset(dbuf.buf, 0, dbuf.getBufferSize());
 
    // local buffer pointer
    bufusint = reinterpret_cast<unsigned short int*>(dbuf.buf);
