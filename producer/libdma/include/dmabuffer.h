@@ -1,5 +1,4 @@
-#ifndef _DMABUFFER_H_
-#define _DMABUFFER_H_
+#pragma once
 
 #include <string>
 
@@ -36,6 +35,4 @@ public:
    bool setBufferOwner(unsigned int owner);
    bool setSyncMode(unsigned int mode);
 };
-
-#endif
 

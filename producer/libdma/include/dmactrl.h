@@ -1,5 +1,4 @@
-#ifndef DMACTRL_H_
-#define DMACTRL_H_
+#pragma once
 
 #include <map>
 #include <string>
@@ -108,6 +107,4 @@ private:
    bool blockRx(unsigned int timeout = 0);
    bool bufferRx(unsigned int timeout = 0);
 };
-
-#endif
 
