@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <cstdint>
 #include <unistd.h>  // usleep
 #include <fmt/core.h>
 #include <zmq_addon.hpp>
@@ -18,9 +19,9 @@ bool debug = false;
 bool verbose = false;
 bool local = false;
 std::string host;
-int port;
-int mpmtid;
-int size;
+uint16_t port;
+uint8_t mpmtid;
+uint16_t size;
 std::string mode;
 
 zmq::context_t ctx;
@@ -61,36 +62,37 @@ int main(int argc, const char **argv) {
    // START parsing command line options
 
    program.add_argument("--local")
+    .help("local mode")
     .default_value(false)
-    .implicit_value(true)
-    .help("local mode");
+    .implicit_value(true);
 
    program.add_argument("--debug")
+    .help("enable debug")
     .default_value(false)
-    .implicit_value(true)
-    .help("enable debug");
+    .implicit_value(true);
 
    program.add_argument("--verbose")
+    .help("print events on stdout")
     .default_value(false)
-    .implicit_value(true)
-    .help("print events on stdout");
+    .implicit_value(true);
 
    program.add_argument("--host")
     .help("receiver hostname");
 
    program.add_argument("--port")
-    .default_value(5555)
-    .help("receiver port");
+    .help("receiver port")
+    .default_value(uint16_t(5555))
+    .scan<'u', uint16_t>();
 
    program.add_argument("--id")
     .help("MPMT id")
-    .default_value(1)
-    .scan<'d', int>();
+    .default_value(uint8_t(1))
+    .scan<'u', uint8_t>();
 
    program.add_argument("--size")
     .help("DMA block size")
-    .default_value(32768)
-    .scan<'d', int>();
+    .default_value(uint16_t(32768))
+    .scan<'u', uint16_t>();
 
    try {
       program.parse_args(argc, argv);
@@ -104,15 +106,15 @@ int main(int argc, const char **argv) {
       mode = "local";
    } else if(program.present("--host")) {
       host = program.get<std::string>("--host");
-      port = program.get<int>("--port");
-      mpmtid = program.get<int>("--id");
+      port = program.get<uint16_t>("--port");
+      mpmtid = program.get<uint8_t>("--id");
       mode = "remote";
    } else {
       std::cerr << "E: specify local or host/id options" << std::endl;
       return EXIT_FAILURE;
    }
 
-   size = program.get<int>("--size");
+   size = program.get<uint16_t>("--size");
    debug = program.get<bool>("--debug");
    verbose = program.get<bool>("--verbose");
 
@@ -125,7 +127,7 @@ int main(int argc, const char **argv) {
    DMABuffer dbuf;
 
    zmq::socket_t sock(ctx, zmq::socket_type::dealer);
-   unsigned short int *bufusint;
+   uint16_t *bufusint;
 
    // ZMQ socket
    if(mode == "remote") {
@@ -146,7 +148,7 @@ int main(int argc, const char **argv) {
    memset(dbuf.buf, 0, dbuf.getBufferSize());
 
    // local buffer pointer
-   bufusint = reinterpret_cast<unsigned short int*>(dbuf.buf);
+   bufusint = reinterpret_cast<uint16_t *>(dbuf.buf);
 
    // set DMA coherency mode
    if(!dbuf.setSyncMode(7)) {
@@ -191,7 +193,7 @@ int main(int argc, const char **argv) {
             if(dmac.rx()) {      // no timeout
 
                if(verbose) {
-                  for(int i=0; i<size/2; i++)
+                  for(uint16_t i=0; i<size/2; i++)
                      fmt::print("{:04X} ", bufusint[i]);
                   fmt::print("\n");
                }
