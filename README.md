@@ -58,6 +58,12 @@ An additional thread is used to synchronize MIDAS run control with remote produc
 |event buffer| 5555 (default) | in/out | proxy(router/push) |
 |run control | 4444 | out | publisher |
 
+User can specify the number of MPMT boards collected by MIDAS frontend using this ODB key:
+
+```
+/Equipment/MPMT/Settings/Number of MPMT boards	
+```
+
 ## MIDAS Event data format
 
 A single MPMT producer includes 19 channels (0...18).
