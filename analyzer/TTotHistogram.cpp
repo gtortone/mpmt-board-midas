@@ -48,13 +48,18 @@ void TTotHistogram::CreateHistograms() {
 
 void TTotHistogram::UpdateHistograms(TDataContainer& dataContainer) {
 
-   const uint16_t board = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[0];
-   const uint16_t channel = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[1];
-   const uint16_t twc = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[6];
-   const uint16_t twf = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[7];
-   const uint16_t tf = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[5];
+   std::string banks = dataContainer.GetMidasData().GetBankList();
 
-   float tot = (5 * twc) - float(5/18 * twf) + float(5/18 * tf);
+   if(banks.find("PMT") != std::string::npos) {
 
-   GetHistogram(( (board-1) * numberChannelPerModule) + channel)->Fill(tot);
+      const uint16_t channel = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[1];
+      const uint16_t board = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[0];
+      const uint16_t twc = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[6];
+      const uint16_t twf = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[7];
+      const uint16_t tf = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[5];
+
+      float tot = (5 * twc) - float(5/18 * twf) + float(5/18 * tf);
+
+      GetHistogram(( (board-1) * numberChannelPerModule) + channel)->Fill(tot);
+   }
 }

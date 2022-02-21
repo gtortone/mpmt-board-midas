@@ -48,11 +48,14 @@ void TRawHistogram::CreateHistograms() {
 
 void TRawHistogram::UpdateHistograms(TDataContainer& dataContainer) {
 
-   const uint16_t board = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[0];
-   const uint16_t channel = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[1];
-   const uint16_t value = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[8];
+   std::string banks = dataContainer.GetMidasData().GetBankList();
 
-   std::cout << "board " << board << " channel " << channel << " value " << value << std::endl; 
+   if(banks.find("PMT") != std::string::npos) {
 
-   GetHistogram(( (board-1) * numberChannelPerModule) + channel)->Fill(value);
+      const uint16_t channel = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[1];
+      const uint16_t board = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[0];
+      const uint16_t value = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[8];
+
+      GetHistogram(( (board-1) * numberChannelPerModule) + channel)->Fill(value);
+   }
 }
