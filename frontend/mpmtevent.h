@@ -1,8 +1,8 @@
-#ifndef MPMTEVENT_H_
-#define MPMTEVENT_H_
+#pragma once
 
 #include <vector>
 #include <string>
+#include <cstdint>
 
 #define SOE          0xBAAB         // start of event
 #define EOE          0xFEEF         // end of event
@@ -14,26 +14,29 @@
 class MpmtEvent {
 
 private:
-   std::vector<unsigned short int> event;
+   std::vector<uint16_t> event;
 
 public:
-   void load(unsigned char *data);
+   void load(uint8_t *data);
 
-   unsigned short int head(void) { return event[0]; };
-   unsigned short int tail(void) { return event[EVENT_WORDLEN - 1]; };
+   uint16_t head(void) { return event[0]; };
+   uint16_t tail(void) { return event[EVENT_WORDLEN - 1]; };
 
    std::string sanityCheck(void);
-   unsigned char CRC(void);
+   uint16_t CRC(void);
    void print(void);
 
-   unsigned short int getChannel(void);
-   unsigned short int getUnixtime(void);
-   unsigned int getTDCCoarse(void);
-   unsigned short int getTDCFine(void);
-   unsigned short int getTimeWidthCoarse(void);
-   unsigned short int getTimeWidthFine(void);
-   unsigned short int getADC(void);
-   unsigned short int getCRC(void);
-};
+   uint16_t getChannel(void);
+   uint16_t getUnixtime(void);
+   uint32_t getTDCCoarse(void);
+   uint16_t getTDCFine(void);
+   uint16_t getTimeWidthCoarse(void);
+   uint16_t getTimeWidthFine(void);
+   uint16_t getADC(void);
+   uint16_t getCRC(void);
 
-#endif
+   uint32_t getPPSUnixtime(void);
+   uint16_t getPPSDiagnostic(void);
+   uint16_t getPPSDeadtime(void);
+   uint32_t getPPSRatemeter(void);
+};

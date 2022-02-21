@@ -3,6 +3,7 @@
 #include <valarray>
 #include <exception>
 #include <map>
+#include <cstdint>
 #include <fmt/core.h>
 #include <zmq_addon.hpp>
 
@@ -336,7 +337,7 @@ INT trigger_thread(void *param) {
             }
          } while (status != DB_SUCCESS);
 
-         ev.load((unsigned char *) recv_msgs[1].data() + i);
+         ev.load((uint8_t *) recv_msgs[1].data() + i);
          i += EVENT_BYTELEN;
 
 #ifdef DEBUG
@@ -357,22 +358,39 @@ INT trigger_thread(void *param) {
          /* init bank structure */
          bk_init(pbank);
 
-         /* init bank body */
-         bk_create(pbank, "PMT", TID_WORD, (void **)&pbody);
-         
-         /* fill bank body */
-         *pbody++ = std::stoi(recv_msgs[0].to_string());    // PMT id
-         *pbody++ = ev.getChannel();                        // channel
-         // handle channel 31 (0x1F)
-         // ...
-         *pbody++ = ev.getUnixtime();                       // UNIX time
-         unsigned int tdccoarse = ev.getTDCCoarse();        // TDC coarse
-         *pbody++ = (tdccoarse & 0xFFFF0000) >> 16;
-         *pbody++ = (tdccoarse & 0x0000FFFF);
-         *pbody++ = ev.getTDCFine();                        // TDC fine
-         *pbody++ = ev.getTimeWidthCoarse();                // Time width coarse
-         *pbody++ = ev.getTimeWidthFine();                  // Time width fine
-         *pbody++ = ev.getADC();                            // ADC
+         if(ev.getChannel() == 0x1F) {    /* bank 0x1F(31) PPS  */
+
+            /* init bank body */
+            bk_create(pbank, "PPS", TID_WORD, (void **)&pbody);
+
+            /* fill bank body */
+            *pbody++ = std::stoi(recv_msgs[0].to_string());    // PMT id
+            uint32_t ts = ev.getPPSUnixtime();
+            *pbody++ = (ts & 0xFFFF0000) >> 16;
+            *pbody++ = (ts & 0x0000FFFF);
+            *pbody++ = ev.getPPSDiagnostic();
+            uint32_t rm = ev.getPPSRatemeter();
+            *pbody++ = (rm & 0xFFFF0000) >> 16;
+            *pbody++ = (rm & 0x0000FFFF);
+            *pbody++ = ev.getPPSDeadtime();
+
+         } else {    /* bank PMT */
+
+            /* init bank body */
+            bk_create(pbank, "PMT", TID_WORD, (void **)&pbody);
+            
+            /* fill bank body */
+            *pbody++ = std::stoi(recv_msgs[0].to_string());    // PMT id
+            *pbody++ = ev.getChannel();                        // channel
+            *pbody++ = ev.getUnixtime();                       // UNIX time
+            uint32_t tdccoarse = ev.getTDCCoarse();            // TDC coarse
+            *pbody++ = (tdccoarse & 0xFFFF0000) >> 16;
+            *pbody++ = (tdccoarse & 0x0000FFFF);
+            *pbody++ = ev.getTDCFine();                        // TDC fine
+            *pbody++ = ev.getTimeWidthCoarse();                // Time width coarse
+            *pbody++ = ev.getTimeWidthFine();                  // Time width fine
+            *pbody++ = ev.getADC();                            // ADC
+         }
 
          /* close bank */
          bk_close(pbank, pbody);

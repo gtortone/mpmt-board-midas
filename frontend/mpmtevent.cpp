@@ -14,10 +14,10 @@
 
 void MpmtEvent::load(unsigned char *data) {
    
-   unsigned short int *buf = reinterpret_cast<unsigned short int *>(data);
+   uint16_t *buf = reinterpret_cast<uint16_t *>(data);
    event.clear();
    event.shrink_to_fit();
-   event = std::vector<unsigned short int>(buf, buf + EVENT_WORDLEN);
+   event = std::vector<uint16_t>(buf, buf + EVENT_WORDLEN);
 }
 
 std::string MpmtEvent::sanityCheck() {
@@ -32,9 +32,9 @@ std::string MpmtEvent::sanityCheck() {
    return "";
 }
 
-unsigned char MpmtEvent::CRC(void) {
+uint16_t MpmtEvent::CRC(void) {
 
-   unsigned char *buf = reinterpret_cast<unsigned char *>(event.data());
+   uint8_t *buf = reinterpret_cast<uint8_t *>(event.data());
    unsigned short int crc = buf[2];
 
    for(int i=3; i<EVENT_BYTELEN - 2; i++) {
@@ -46,36 +46,59 @@ unsigned char MpmtEvent::CRC(void) {
    return(crc);
 }
 
-unsigned short int MpmtEvent::getChannel(void) {
+uint16_t MpmtEvent::getChannel(void) {
    return( (event[1] >> 8) & 0x003F );
 }
 
-unsigned short int MpmtEvent::getUnixtime(void) {
+/* PMT event */
+
+uint16_t MpmtEvent::getUnixtime(void) {
    return( ((event[1] << 8) & 0xFF00) + ((event[2] >> 8) & 0x00FF) );
 }
 
-unsigned int MpmtEvent::getTDCCoarse(void) {
+uint32_t MpmtEvent::getTDCCoarse(void) {
    return( (((event [2] & 0x00FF) << 20) & 0x0FFFFFFF) + (event[3] << 1) + (event[4] >> 11) );   
 }
 
-unsigned short int MpmtEvent::getTDCFine(void) {
+uint16_t MpmtEvent::getTDCFine(void) {
    return( (event[5] >> 4) & 0x001F );
 }
 
-unsigned short int MpmtEvent::getTimeWidthCoarse(void) {
+uint16_t MpmtEvent::getTimeWidthCoarse(void) {
    return( (event[4] >> 5) & 0x0003F ); 
 }
 
-unsigned short int MpmtEvent::getTimeWidthFine(void) {
+uint16_t MpmtEvent::getTimeWidthFine(void) {
    return( event[4] & 0x001F );
 }
 
-unsigned short int MpmtEvent::getADC(void) {
+uint16_t MpmtEvent::getADC(void) {
    return( ((event[5] << 8) & 0x0F00) + ((event[6] >> 8) & 0x00FF) );
 }
 
-unsigned short int MpmtEvent::getCRC(void) {
+uint16_t MpmtEvent::getCRC(void) {
    return( event[6] & 0x00FF );
+}
+
+/* PPS event */
+
+uint32_t MpmtEvent::getPPSUnixtime(void) {
+   return( (event[2] << 8) + (event[3] >> 23) );   
+}
+
+uint16_t MpmtEvent::getPPSDiagnostic(void) {
+   // [7:6] CLK
+   // [5:0] Diagnostic
+   return ( (((event[3] >> 5) & 0x0003) << 7) + ( (event[5] >> 8) & 0x003F) );
+}
+
+uint16_t MpmtEvent::getPPSDeadtime(void) {
+   uint16_t dt = ( ((event[5] & 0x00FF) << 8) + (event[6] >> 8) );
+   return (100 - (dt/48829 * 100));
+}
+
+uint32_t MpmtEvent::getPPSRatemeter(void) {
+   return ( ( (event[3] & 0x001F) << 11 ) + event[4] );
 }
 
 void MpmtEvent::print(void) {
