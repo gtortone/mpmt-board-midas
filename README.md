@@ -73,7 +73,9 @@ Evid:0001- Mask:0000- Serial:639- Time:0x6200f2f6
 `Serial`: progressive number (provided by MIDAS)\
 `Time`: UNIX timestamp (provided by MIDAS)
 
-- Each PMT event is included in `PMT` bank and inside a bank data are organized as follow:
+Events collected contains `PMT` or `PPS` bank.
+
+- Events with `PMT` bank are organized as follow:
 
 `ID`:  MPMT id\
 `CH`:  MPMT channel\
@@ -92,3 +94,21 @@ Bank:PMT
    9-> 0x0221
        (ADC)
 ```
+
+- Events with `PPS` bank are organized as follow:
+
+`ID`:  MPMT id\
+`TSH`: Unix timestamp H\
+`TSL`: Unix timestamp L\
+`DIA`: Diagnostic info (tbd)\
+`RMH`: Rate meter H (sum of rate of each channel)\
+`RML`: Rate meter L (sum of rate of each channel)\
+`DT `: Dead time (%) 
+
+
+```
+Bank:PPS
+   1-> 0x0001 0x0037 0x0000 0x0100 0x0001 0x0000 0x0064
+       (ID)   (TSH)  (TSL)  (DIA)  (RMH)  (RML)  (DT)
+```
+
