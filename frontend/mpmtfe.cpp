@@ -63,7 +63,7 @@ void equip_data_init(void);
 BOOL equipment_common_overwrite = TRUE;
 
 EQUIPMENT equipment[] = {
-      {"MPMT%02d",  /* equipment name */
+      {"MPMT",  /* equipment name */
       {  
          1, 0,                   /* event ID, trigger mask */
          "SYSTEM",               /* event buffer */
@@ -145,6 +145,7 @@ INT monitor_thread(void *param) {
 void equip_data_init(void) {
 
    std::string odb_base = std::string("/Equipment/") + std::string(equipment[0].name);
+   std::string odb_settings = odb_base + "/Settings";
 
    /* create ZMQ proxy thread */
    printf("Create ZMQ proxy thread...\n");
@@ -154,7 +155,11 @@ void equip_data_init(void) {
    printf("Create ZMQ monitor thread...\n");
    ss_thread_create(monitor_thread, NULL);
 
-   od.connect(odb_base);
+   midas::odb settings = { 
+       {"Number of MPMT boards", 1},
+   };
+
+   settings.connect(odb_settings);
 
    ss_mutex_create(&odbmutex, false);
 
@@ -174,11 +179,13 @@ void equip_data_init(void) {
 
 INT frontend_init() {
    
+/*
    int feIndex = get_frontend_index();
    if(feIndex < 0){
       cm_msg(MERROR,"Init", "Must specify the frontend index (ie use -i <n> command line option)");
       return FE_ERR_HW;
    }
+*/
 
    set_equipment_status(equipment[0].name, "Initialized", "#ffff00");
 
