@@ -34,3 +34,5 @@
 producer/build
 frontend/mpmtfe
 frontend/midas.log
+rc/__pycache__
+hv/__pycache__
