@@ -131,6 +131,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
    # update Modbus registers from ODB keys changed by user
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
+      if path == f'{self.odb_settings_dir}/Port device':
+         return
       if path == f'{self.odb_settings_dir}/Power command':
          return
       if path == f'{self.odb_settings_dir}/Online':
