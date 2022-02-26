@@ -10,6 +10,12 @@ port = *:9001
 username = midas
 password = changeme
 ```
+- configure MIDAS Programs (Start command)
+```
+(rcfe) supervisorctl -s http://mpmthostname:9001 -u midas -p password start mpmt-rc
+(hvfe) supervisorctl -s http://mpmthostname:9001 -u midas -p password start mpmt-hv
+(snfe) supervisorctl -s http://mpmthostname:9001 -u midas -p password start mpmt-sn
+```
 
 ### MPMT node
 
