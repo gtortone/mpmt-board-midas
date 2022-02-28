@@ -108,7 +108,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
             try:
                monData = self.hv.readMonRegisters(addr)
             except:
-               if self.settings["Report Modbus errors"] is True:
+               if self.settings["Report Modbus errors"] == True:
                   self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
             else:
                settings["Status"][addr-1] = monData['status']
