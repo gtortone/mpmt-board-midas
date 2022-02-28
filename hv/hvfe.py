@@ -108,7 +108,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
             try:
                monData = self.hv.readMonRegisters(addr)
             except:
-               self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
+               if self.settings["Report Modbus errors"] is True:
+                  self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
             else:
                settings["Status"][addr-1] = monData['status']
                settings["V"][addr-1] = monData['V']
@@ -132,6 +133,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
       if path == f'{self.odb_settings_dir}/Port device':
+         return
+      if path == f'{self.odb_settings_dir}/Report Modbus errors':
          return
       if path == f'{self.odb_settings_dir}/Power command':
          return

@@ -23,6 +23,7 @@ scratch_rw_settings = {
 
 default_settings = {
    "Port device": "/dev/ttyPS1",
+   "Report Modbus errors": False, 
    "Online": [False] * 19,
    "Power command": ["none"] * 19,
    "Status": [0] * 19,
