@@ -24,10 +24,10 @@ class HighVoltage(midas.frontend.EquipmentBase):
       default_common.equip_type = midas.EQ_PERIODIC
       default_common.buffer_name = "SYSTEM"
       default_common.trigger_mask = 0
-      default_common.event_id = 300
+      default_common.event_id = 3
       default_common.period_ms = 2000
       default_common.read_when = midas.RO_ALWAYS
-      default_common.log_history = 0
+      default_common.log_history = 2      # history is enabled, data generated with period_ms frequency
 
       midas.frontend.EquipmentBase.__init__(self, client, equip_name, default_common, conf.default_settings)
 
@@ -158,7 +158,30 @@ class HighVoltage(midas.frontend.EquipmentBase):
 
    def readout_func(self):
       self.updateODB()
-      return None       # no event available
+      event = midas.event.Event()
+      hvOnline = self.settings['Online']
+      for idx in range(0,19):
+         if hvOnline[idx]:
+            data = []
+            data.append(midas.frontend.frontend_index)
+            data.append(idx+1)         # modbus address
+            data.append(int(self.settings["Status"][idx]))
+            data.append(int(self.settings["V"][idx] * 1000))     # mV)
+            data.append(int(self.settings["I"][idx] * 1000))     # nA
+            data.append(int(self.settings["T"][idx]))
+            data.append(int(self.settings["Alarm"][idx]))
+            data.append(int(self.settings["Vset"][idx]))
+            data.append(int(self.settings["Rate up"][idx]))
+            data.append(int(self.settings["Rate down"][idx]))
+            data.append(int(self.settings["Limit V"][idx]))
+            data.append(int(self.settings["Limit I"][idx]))
+            data.append(int(self.settings["Limit T"][idx]))
+            data.append(int(self.settings["Trip time"][idx]))
+            data.append(int(self.settings["Trigger threshold"][idx]))
+            
+            event.create_bank(f"HV{str(idx).zfill(2)}", midas.TID_INT, data)
+      
+      return event
 
 class MyFrontend(midas.frontend.FrontendBase):
 
