@@ -23,9 +23,9 @@ broadcast address).
 |```Limit V```|int|voltage margin limit (V)|
 |```Limit I```|int|current limit (uA)|
 |```Limit T```|int|temperature limit (degC)|
-|```Trip time```|int|trip time limit (ms)|
+|```Trip time```|int|trip time limit (s)|
 |```Trigger threshold```|int|trigger threshold|
-|```Alarm```|int|alarm mask of bits|
+|```Alarm```|int|alarm mask of bits (see alarm table)|
 
 #### Status table
 
@@ -49,6 +49,44 @@ broadcast address).
 |```4```|OVER CURRENT|
 |```8```|OVER TEMPERATURE|
 
-
 ### Event data
+
+Each online HV module is included in MIDAS event as a different bank (e.g. HV01, HV03, ...)
+
+- Event data start with event header:
+```
+Evid:0003- Mask:0000- Serial:639- Time:0x6200f2f6
+```
+`Evid`: event id - type of event\
+`Mask`: trigger mask\
+`Serial`: progressive number (provided by MIDAS)\
+`Time`: UNIX timestamp (provided by MIDAS)
+
+- Events within `HVxx` bank are organized as follow:
+
+`ID`:  MPMT id\
+`MB`:  Modbus address\
+`STA`: Status\
+`V`: Monitored voltage (mV)\
+`I`: Monitored current (nA)\
+`T`: Monitored temperature (degC)\
+`ALA`: Alarm code\
+`VSE`: Voltage to reach (V)\
+`RUP`: Ramp up rate (V/s)\
+`RDN`: Ramp down rate (V/s)\
+`LIV`: Voltage margin limit (V)\
+`LII`: Current limit (uA)\
+`LIT`: Temperature limit (degC)\
+`TT`: Trip time (s)\
+`THR`: Trigger threshold
+
+```
+Bank:HV00
+  1->        1        1        0   299493      304       27        0      300
+          (ID)     (MB)    (STA)      (V)      (I)      (T)    (ALA)    (VSE)      
+  9->       25       25       15       10       50     1000      132
+         (RUP)    (RDN)    (LIV)    (LII)    (LIT)     (TT)    (THR)     
+```
+
+
 
