@@ -2,9 +2,9 @@
 
 ## Introduction
 
-These MIDAS frontends collect events from multiple MPMT then through MIDAS flow data are stored in MIDAS event files or analyzed with MIDAS analyzer.
+These MIDAS frontends collect events and monitored data from multiple MPMT then through MIDAS flow data are stored in MIDAS event files or analyzed with MIDAS analyzer.
 
-MPMT DAQ software is composed by two parts:
+MPMT DAQ software is composed by different parts:
 
 - [Zynq-ARM event producer](producer/README.md)
 - [MPMT events frontend](frontend/README.md)
