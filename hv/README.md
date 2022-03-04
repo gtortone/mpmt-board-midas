@@ -51,21 +51,16 @@ broadcast address).
 
 ### Event data
 
-Each online HV module is included in MIDAS event as a different bank (e.g. HV01, HV03, ...)
+### Event header
 
-- Event data start with event header:
-```
-Evid:0003- Mask:0000- Serial:639- Time:0x6200f2f6
-```
-`Evid`: event id - type of event\
-`Mask`: trigger mask\
-`Serial`: progressive number (provided by MIDAS)\
-`Time`: UNIX timestamp (provided by MIDAS)
+`Event id`: 3\
+`Mask`: MPMT id\
+`Bank name`: `HVnn` (nn: number of HV module [0...18])
+
+### Bank format
 
 - Events within `HVxx` bank are organized as follow:
 
-`ID`:  MPMT id\
-`MB`:  Modbus address\
 `STA`: Status\
 `V`: Monitored voltage (mV)\
 `I`: Monitored current (nA)\
