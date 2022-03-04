@@ -76,12 +76,9 @@ broadcast address).
 `THR`: Trigger threshold
 
 ```
-Bank:HV00
-  1->        1        1        0   299493      304       27        0      300
-          (ID)     (MB)    (STA)      (V)      (I)      (T)    (ALA)    (VSE)      
-  9->       25       25       15       10       50     1000      132
-         (RUP)    (RDN)    (LIV)    (LII)    (LIT)     (TT)    (THR)     
+Bank:HV00 - Mask:0001
+  1-> 0.000e+00 2.998e+02 3.040e-01 2.800e+01 0.000e+00 3.000e+02 2.500e+01 2.500e+01
+          (STA)       (V)       (I)       (T)     (ALA)     (VSE)     (RUP)     (RDN)
+  9-> 1.500e+01 1.000e+01 5.000e+01 1.000e+03 1.320e+02 
+          (LIV)     (LII)     (LIT)      (TT)     (THR)     
 ```
-
-
-
