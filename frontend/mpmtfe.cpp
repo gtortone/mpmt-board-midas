@@ -351,7 +351,8 @@ INT trigger_thread(void *param) {
             continue;
          }
 
-         bm_compose_event_threadsafe(pevent, 1, 0, 0, &equipment[0].serial_number);
+         int id = std::stoi(recv_msgs[0].to_string());
+         bm_compose_event_threadsafe(pevent, 1, id, 0, &equipment[0].serial_number);
 
          pbank = (WORD *)(pevent + 1);
 
@@ -364,7 +365,6 @@ INT trigger_thread(void *param) {
             bk_create(pbank, "PPS", TID_WORD, (void **)&pbody);
 
             /* fill bank body */
-            *pbody++ = std::stoi(recv_msgs[0].to_string());    // PMT id
             uint32_t ts = ev.getPPSUnixtime();
             *pbody++ = (ts & 0xFFFF0000) >> 16;
             *pbody++ = (ts & 0x0000FFFF);
@@ -380,7 +380,6 @@ INT trigger_thread(void *param) {
             bk_create(pbank, "PMT", TID_WORD, (void **)&pbody);
             
             /* fill bank body */
-            *pbody++ = std::stoi(recv_msgs[0].to_string());    // PMT id
             *pbody++ = ev.getChannel();                        // channel
             *pbody++ = ev.getUnixtime();                       // UNIX time
             uint32_t tdccoarse = ev.getTDCCoarse();            // TDC coarse
