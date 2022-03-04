@@ -6,8 +6,8 @@ These MIDAS frontends collect events from multiple MPMT then through MIDAS flow 
 
 MPMT DAQ software is composed by two parts:
 
-- Zynq-ARM event producer
-- MPMT events frontend
-- HighVoltage frontend
-- RunControl frontend
-- Sensors frontend
+- [Zynq-ARM event producer](producer/README.md)
+- [MPMT events frontend](frontend/README.md)
+- [HighVoltage frontend](hv/README.md)
+- [RunControl frontend](rc/README.md)
+- [Sensors frontend](sn/README.md)
