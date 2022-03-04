@@ -19,7 +19,7 @@ password = changeme
 
 ### MPMT node
 
-- copy `mpmt-rc.conf` and `mpmt-hv.conf` in `/etc/supervisor/conf.d/`
+- copy `mpmt-rc.conf`, `mpmt-hv.conf`, `mpmt-sn.conf` and `mpmt-producer.conf` in `/etc/supervisor/conf.d/`
 - modify `-i` argument in startup scripts accordingly to MPMT board index
 - configure supervisord for remote access in `/etc/supervisor/supervisord.conf`:
 ```
