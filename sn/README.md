@@ -20,13 +20,13 @@ This MIDAS frontend provides data from environmental sensors installed on MPMT b
 
 ### Event data
 
-### Event header
+#### Event header
 
 `Event id`: 4\
 `Mask`: MPMT id\
 `Bank name`: `SENS`
 
-### Bank format
+#### Bank format
 
 - Events within `SENS` bank are organized as follow:
 
