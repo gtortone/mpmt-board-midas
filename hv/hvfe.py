@@ -159,27 +159,27 @@ class HighVoltage(midas.frontend.EquipmentBase):
    def readout_func(self):
       self.updateODB()
       event = midas.event.Event()
+      event.header.trigger_mask = midas.frontend.frontend_index
+
       hvOnline = self.settings['Online']
       for idx in range(0,19):
          if hvOnline[idx]:
             data = []
-            data.append(midas.frontend.frontend_index)
-            data.append(idx+1)         # modbus address
-            data.append(int(self.settings["Status"][idx]))
-            data.append(int(self.settings["V"][idx] * 1000))     # mV)
-            data.append(int(self.settings["I"][idx] * 1000))     # nA
-            data.append(int(self.settings["T"][idx]))
-            data.append(int(self.settings["Alarm"][idx]))
-            data.append(int(self.settings["Vset"][idx]))
-            data.append(int(self.settings["Rate up"][idx]))
-            data.append(int(self.settings["Rate down"][idx]))
-            data.append(int(self.settings["Limit V"][idx]))
-            data.append(int(self.settings["Limit I"][idx]))
-            data.append(int(self.settings["Limit T"][idx]))
-            data.append(int(self.settings["Trip time"][idx]))
-            data.append(int(self.settings["Trigger threshold"][idx]))
+            data.append(self.settings["Status"][idx])
+            data.append(self.settings["V"][idx])
+            data.append(self.settings["I"][idx])
+            data.append(self.settings["T"][idx])
+            data.append(self.settings["Alarm"][idx])
+            data.append(self.settings["Vset"][idx])
+            data.append(self.settings["Rate up"][idx])
+            data.append(self.settings["Rate down"][idx])
+            data.append(self.settings["Limit V"][idx])
+            data.append(self.settings["Limit I"][idx])
+            data.append(self.settings["Limit T"][idx])
+            data.append(self.settings["Trip time"][idx])
+            data.append(self.settings["Trigger threshold"][idx])
             
-            event.create_bank(f"HV{str(idx).zfill(2)}", midas.TID_INT, data)
+            event.create_bank(f"HV{str(idx).zfill(2)}", midas.TID_FLOAT, data)
       
       return event
 
