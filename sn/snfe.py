@@ -22,10 +22,10 @@ class Sensors(midas.frontend.EquipmentBase):
       default_common.equip_type = midas.EQ_PERIODIC
       default_common.buffer_name = "SYSTEM"
       default_common.trigger_mask = 0
-      default_common.event_id = 300
+      default_common.event_id = 4
       default_common.period_ms = 5000
       default_common.read_when = midas.RO_ALWAYS
-      default_common.log_history = 0
+      default_common.log_history = 2 # history is enabled, data generated with period_ms frequency
 
       default_settings = {
          "Voltage 5V": 0.0, 
@@ -80,7 +80,25 @@ class Sensors(midas.frontend.EquipmentBase):
 
    def readout_func(self):
       self.updateODB()
-      return None       # no event available
+      event = midas.event.Event()
+      event.header.trigger_mask = midas.frontend.frontend_index
+
+      data = []
+      data.append(self.settings['Voltage 5V']) 
+      data.append(self.settings['Voltage 3.3V']) 
+      data.append(self.settings['Current POE channel A'])
+      data.append(self.settings['Current POE channel B'])
+      data.append(self.settings['Power POE channel A'])
+      data.append(self.settings['Power POE channel B'])
+      data.append(self.settings['On-board temperature'])
+      data.append(self.settings['On-board pressure'])
+      data.append(self.settings['On-board humidity'])
+      data.append(self.settings['External temperature'])
+      data.append(self.settings['External pressure'])
+
+      event.create_bank("SENS", midas.TID_FLOAT, data)
+
+      return event
 
 class MyFrontend(midas.frontend.FrontendBase):
 
