@@ -26,6 +26,8 @@ This MIDAS frontend provides data from Run Control registers.
 |```Clock fail```|bool|Clock failure|
 |```PPS OK```|book|PPS received on reference clock line|
 |```Unix timestamp aligned```|bool|Unix timestamp and PPS counter aligned|
+|```PPS counter```|int|PPS counter|
+|```Unix timestamp```|int|Unix timestamp|
 |```Enable PPS event```|bool|Enable generation of PPS event|
 |```Enable ADC calibration```|bool|Start ADC calibration|
 |```Peak delay```|int|Peak delay|
@@ -39,6 +41,42 @@ This MIDAS frontend provides data from Run Control registers.
 
 #### Event header
 
-`Event id`: 4\
+`Event id`: 2\
 `Mask`: MPMT id\
-`Bank name`: `SENS`
+`Bank name`: `RCnn`, RCGL  (nn: number of channel [0...18])
+
+#### Bank format
+
+- Events within `RCxx` bank are organized as follow:
+
+`ADC`: ADC sampling\
+`POW`: Power status\
+`OC`: Overcurrent flag\
+`RM`: Channel ratemeter
+
+```
+Bank:RC15
+   1->    0        1        1    65535
+      (ADC)    (POW)     (OC)     (RM)
+```
+
+- Events within `RCGL` bank are organized as follow:
+
+`CLK`: Clock diagnostic bits (register 0xC)\
+`PPS`: PPS counter\
+`UX`: Unix timestamp\
+`EPE`: PPS event enabled\
+`ACE`: ADC caliberation enabled\
+`PDL`: Peak delay\
+`DDL`: Dark delay\
+`PP`: Pulser period\
+`DT`: Dead time
+
+```
+Bank:RCGL
+   1->     7602    21095     1234        1        0       24      240       10
+          (CLK)    (PPS)     (UX)    (EPE)    (ACE)    (PDL)    (DDL)     (PP)
+   9->        0
+           (DT)
+```
+
