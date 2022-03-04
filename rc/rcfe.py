@@ -21,10 +21,10 @@ class RunControl(midas.frontend.EquipmentBase):
       default_common.equip_type = midas.EQ_PERIODIC
       default_common.buffer_name = "SYSTEM"
       default_common.trigger_mask = 0
-      default_common.event_id = 300
+      default_common.event_id = 2
       default_common.period_ms = 2000
       default_common.read_when = midas.RO_ALWAYS
-      default_common.log_history = 0
+      default_common.log_history = 2 # history is enabled, data generated with period_ms frequency
 
       # open memory mapped device
       try:
@@ -88,6 +88,32 @@ class RunControl(midas.frontend.EquipmentBase):
 
    def readout_func(self):
       self.scanRegisters()
+      event = midas.event.Event()
+      event.header.trigger_mask = midas.frontend.frontend_index
+
+      for idx in range(0,19):
+         data = []
+         data.append(int(self.settings['Enable ADC sampling'][idx]))
+         data.append(int(self.settings['Power enable'][idx]))
+         data.append(int(self.settings['Overcurrent'][idx]))
+         data.append(int(self.settings['Channel ratemeter'][idx]))
+
+         event.create_bank(f"RC{str(idx).zfill(2)}", midas.TID_INT, data)
+
+      data = []
+      data.append(int(self.readRegister(3)))          # clock diagnostic bits
+      data.append(int(self.settings['PPS counter']))
+      data.append(int(self.settings['Unix timestamp']))
+      data.append(int(self.settings['Enable PPS event']))
+      data.append(int(self.settings['Enable ADC calibration']))
+      data.append(int(self.settings['Peak delay']))
+      data.append(int(self.settings['Dark delay']))
+      data.append(int(self.settings['Pulser period']))
+      data.append(int(self.settings['Dead time']))
+      
+      event.create_bank("RCGL", midas.TID_INT, data)
+
+      return event
 
    #
    # update FPGA registers from ODB keys changed by user
