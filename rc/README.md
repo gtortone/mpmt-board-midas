@@ -43,7 +43,7 @@ This MIDAS frontend provides data from Run Control registers.
 
 `Event id`: 2\
 `Mask`: MPMT id\
-`Bank name`: `RCnn`, RCGL  (nn: number of channel [0...18])
+`Bank name`: `RCnn`, `RCGL`  (nn: number of channel [0...18])
 
 #### Bank format
 
