@@ -66,7 +66,7 @@ Bank:RC15
 `PPS`: PPS counter\
 `UX`: Unix timestamp\
 `EPE`: PPS event enabled\
-`ACE`: ADC caliberation enabled\
+`ACE`: ADC calibration enabled\
 `PDL`: Peak delay\
 `DDL`: Dark delay\
 `PP`: Pulser period\
