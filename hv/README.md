@@ -52,7 +52,6 @@ broadcast address).
 ### Event data
 
 #### Event header
-9-> 2.330e+01 2.306e+01 9.984e+02
 `Event id`: 3\
 `Mask`: MPMT id\
 `Bank name`: `HVnn` (nn: number of HV module [0...18])
