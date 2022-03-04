@@ -20,7 +20,7 @@ bool verbose = false;
 bool local = false;
 std::string host;
 uint16_t port;
-uint8_t mpmtid;
+uint16_t mpmtid;
 uint16_t size;
 std::string mode;
 
@@ -86,8 +86,8 @@ int main(int argc, const char **argv) {
 
    program.add_argument("--id")
     .help("MPMT id")
-    .default_value(uint8_t(1))
-    .scan<'u', uint8_t>();
+    .default_value(uint16_t(1))
+    .scan<'u', uint16_t>();
 
    program.add_argument("--size")
     .help("DMA block size")
@@ -107,7 +107,7 @@ int main(int argc, const char **argv) {
    } else if(program.present("--host")) {
       host = program.get<std::string>("--host");
       port = program.get<uint16_t>("--port");
-      mpmtid = program.get<uint8_t>("--id");
+      mpmtid = program.get<uint16_t>("--id");
       mode = "remote";
    } else {
       std::cerr << "E: specify local or host/id options" << std::endl;
