@@ -3,7 +3,7 @@
 import midas.file_reader
 
 # Open our file
-mfile = midas.file_reader.MidasFile("run00407sub0000.mid.lz4")
+mfile = midas.file_reader.MidasFile("run00410sub0000.mid.lz4")
 
 # We can simply iterate over all events in the file
 evnum = 0
@@ -12,6 +12,8 @@ for event in mfile:
        print("Saw a special event")
        continue
    
+   event.dump()
+
    print(f"+++ Event: evid {event.header.event_id}  mask {event.header.trigger_mask}") 
 
    for name, content in event.banks.items():
@@ -23,8 +25,12 @@ for event in mfile:
 
    evnum += 1
 
+print("New loop...")
+
 # We can iterate on all events and lookup for a specific bank name
+mfile.jump_to_start()
 for event in mfile:
-   bank_sens = event.get_bank("SENS")
-   if bank_sens:
-      print(f'sensor data: {bank_sens.data}')
+   bank_sens = event.get_bank("BPMT")
+   if bank_sens is not None:
+      print(f'data: {bank_sens.data}')
+
