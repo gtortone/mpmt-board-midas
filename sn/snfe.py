@@ -4,6 +4,7 @@ import sys
 import midas
 import midas.frontend
 import midas.event
+import psutil
 sys.path.append('/opt/mpmt-board-cli/sensors')
 from tla2024 import TLA2024
 from bme280 import BME280
@@ -39,6 +40,9 @@ class Sensors(midas.frontend.EquipmentBase):
          "On-board humidity": 0.0,
          "External temperature": 0.0,
          "External pressure": 0.0,
+         "CPU used percentage": 0.0,
+         "Memory used percentage": 0.0,
+         "FPGA temperature": 0.0
       }
 
       midas.frontend.EquipmentBase.__init__(self, client, equip_name, default_common, default_settings)
@@ -52,6 +56,12 @@ class Sensors(midas.frontend.EquipmentBase):
       # TLA ADC
       self.tla = TLA2024(1, 0x48)
 
+      # FPGA temperature
+      self.iiodir = "/sys/bus/iio/devices/iio:device0/"
+      self.ftraw = open(f'{self.iiodir}/in_temp0_raw')
+      self.ftoff = open(f'{self.iiodir}/in_temp0_offset')
+      self.ftsca = open(f'{self.iiodir}/in_temp0_scale')
+      
       self.set_status("Initialized")
 
    def updateODB(self):
@@ -68,6 +78,19 @@ class Sensors(midas.frontend.EquipmentBase):
       self.client.odb_set(f"{self.odb_settings_dir}/Current POE channel B", I2)
       self.client.odb_set(f"{self.odb_settings_dir}/Power POE channel A", P1)
       self.client.odb_set(f"{self.odb_settings_dir}/Power POE channel B", P2)
+      self.client.odb_set(f"{self.odb_settings_dir}/CPU used percentage", psutil.cpu_percent())
+      self.client.odb_set(f"{self.odb_settings_dir}/Memory used percentage", psutil.virtual_memory().percent)
+
+      self.ftraw.seek(0,0)
+      self.ftoff.seek(0,0)
+      self.ftsca.seek(0,0)
+     
+      traw = int(self.ftraw.read())
+      toff = int(self.ftoff.read())
+      tsca = float(self.ftsca.read())
+      fpgat = (traw + toff) * tsca / 1000
+
+      self.client.odb_set(f"{self.odb_settings_dir}/FPGA temperature", round(fpgat, 3))
       
       bmeData = self.bme.readAll()
       self.client.odb_set(f"{self.odb_settings_dir}/On-board temperature", round(bmeData[0], 3))
@@ -95,6 +118,9 @@ class Sensors(midas.frontend.EquipmentBase):
       data.append(self.settings['On-board humidity'])
       data.append(self.settings['External temperature'])
       data.append(self.settings['External pressure'])
+      data.append(self.settings['CPU used percentage'])
+      data.append(self.settings['Memory used percentage'])
+      data.append(self.settings['FPGA temperature'])
 
       event.create_bank("SENS", midas.TID_FLOAT, data)
 
