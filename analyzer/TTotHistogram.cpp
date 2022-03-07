@@ -50,13 +50,13 @@ void TTotHistogram::UpdateHistograms(TDataContainer& dataContainer) {
 
    std::string banks = dataContainer.GetMidasData().GetBankList();
 
-   if(banks.find("PMT") != std::string::npos) {
+   if(banks.find("BPMT") != std::string::npos) {
 
-      const uint16_t channel = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[0];
+      const uint16_t channel = dataContainer.GetEventData<TGenericData>("BPMT")->GetData16()[0];
       const uint16_t board = dataContainer.GetMidasData().GetTriggerMask();
-      const uint16_t twc = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[5];
-      const uint16_t twf = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[6];
-      const uint16_t tf = dataContainer.GetEventData<TGenericData>("PMT")->GetData16()[4];
+      const uint16_t twc = dataContainer.GetEventData<TGenericData>("BPMT")->GetData16()[5];
+      const uint16_t twf = dataContainer.GetEventData<TGenericData>("BPMT")->GetData16()[6];
+      const uint16_t tf = dataContainer.GetEventData<TGenericData>("BPMT")->GetData16()[4];
 
       float tot = (5 * twc) - float(5/18 * twf) + float(5/18 * tf);
 

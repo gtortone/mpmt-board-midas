@@ -20,15 +20,15 @@ An additional thread is used to synchronize MIDAS run control with remote produc
 #### Event header
 `Event id`: 1\
 `Mask`: MPMT id\
-`Bank name`: `PMT`, `PPS`
+`Bank name`: `BPMT`, `BPPS`
 
 #### Bank format
 
 A single MPMT producer includes 19 channels (0...18).
 
-Events collected contain `PMT` or `PPS` bank.
+Events collected contain `BPMT` or `BPPS` bank.
 
-- Events with `PMT` bank are organized as follow:
+- Events with `BPMT` bank are organized as follow:
 
 `CH`:  MPMT channel\
 `UX`:  UNIX timestamp (16 bit)\
@@ -40,12 +40,12 @@ Events collected contain `PMT` or `PPS` bank.
 `ADC`: ADC value
 
 ```
-Bank:PMT
+Bank:BPMT
    1-> 0x0006 0x3320 0x0180 0x9112 0x0006 0x0008 0x0005 0x0221
        (CH)   (UX)   (TCH)  (TCL)  (TF)   (TWC)  (TWF)   (ADC)
 ```
 
-- Events with `PPS` bank are organized as follow:
+- Events with `BPPS` bank are organized as follow:
 
 `TSH`: Unix timestamp H\
 `TSL`: Unix timestamp L\
@@ -56,7 +56,7 @@ Bank:PMT
 
 
 ```
-Bank:PPS
+Bank:BPPS
    1-> 0x0037 0x0000 0x0100 0x0001 0x0000 0x0064
        (TSH)  (TSL)  (DIA)  (RMH)  (RML)  (DT)
 ```

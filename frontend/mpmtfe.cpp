@@ -362,7 +362,7 @@ INT trigger_thread(void *param) {
          if(ev.getChannel() == 0x1F) {    /* bank 0x1F(31) PPS  */
 
             /* init bank body */
-            bk_create(pbank, "PPS", TID_WORD, (void **)&pbody);
+            bk_create(pbank, "BPPS", TID_WORD, (void **)&pbody);
 
             /* fill bank body */
             uint32_t ts = ev.getPPSUnixtime();
@@ -377,7 +377,7 @@ INT trigger_thread(void *param) {
          } else {    /* bank PMT */
 
             /* init bank body */
-            bk_create(pbank, "PMT", TID_WORD, (void **)&pbody);
+            bk_create(pbank, "BPMT", TID_WORD, (void **)&pbody);
             
             /* fill bank body */
             *pbody++ = ev.getChannel();                        // channel
