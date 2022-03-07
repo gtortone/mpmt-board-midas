@@ -82,8 +82,17 @@ class RunControl(midas.frontend.EquipmentBase):
          elif v["datatype"] == "int":        # integer
             v["value"] = regval
 
-         if ( ('lastvalue' not in v) or (v["value"] != v["lastvalue"]) ):
-            self.client.odb_set(k, v["value"])
+         if 'lastvalue' in v:
+            # this check is needed for ODB arrays because overwriting elements with same value
+            # triggers detailed_settings_changed_func and if there is a write in progress
+            # array will be updated with old values
+            if v["datatype"] == "boolset" or v["datatype"] == "intset":
+               for i in range(0, v["count"]):
+                  if v["value"][i] != v["lastvalue"][i]:
+                     self.client.odb_set(f'{k}[{i}]', v["value"][i])
+            else:
+               if (v["value"] != v["lastvalue"]):
+                  self.client.odb_set(k, v["value"])
          v["lastvalue"] = v["value"]
 
    def readout_func(self):
