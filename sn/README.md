@@ -17,6 +17,9 @@ This MIDAS frontend provides data from environmental sensors installed on MPMT b
 |```On-board humidity```|double|PCB humidity (%Rh)|
 |```External temperature```|double|External temperature (degC)|
 |```External pressure```|double|External pressure (hPa)|
+|```CPU used percentage```|double|CPU load (%)|
+|```Memory used percentage```|double|Memory used (%)|
+|```FPGA temperature```|double|FPGA temperature (degC)|
 
 ### Event data
 
@@ -41,11 +44,14 @@ This MIDAS frontend provides data from environmental sensors installed on MPMT b
 `BU`: On-board humidity (%Rh)\
 `ET`: External temperature (degC)\
 `EP`: External pressure (hPa)
+`CU`: CPU load (%)\
+`MU`: Memory used (%)\
+`FT`: FPGA temperature (degC)
 
 ```
 Bank:SENS - Mask:0001
   1-> 4.878e+00 3.252e+00 0.000e+00 6.440e-01 0.000e+00 2.094e+00 2.602e+01 9.977e+02
            (V5)     (V33)      (IA)      (IB)      (PA)      (PB)      (BT)      (BP)
-  9-> 2.330e+01 2.306e+01 9.984e+02
-           (BU)      (ET)      (EP)
+  9-> 2.330e+01 2.306e+01 9.984e+02 3.110e+01 1.470e+01 3.482e+01
+           (BU)      (ET)      (EP)      (CU)      (MU)      (FT)
 ```
