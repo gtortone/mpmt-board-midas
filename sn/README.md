@@ -43,7 +43,7 @@ This MIDAS frontend provides data from environmental sensors installed on MPMT b
 `BP`: On-board pressure (hPa)\
 `BU`: On-board humidity (%Rh)\
 `ET`: External temperature (degC)\
-`EP`: External pressure (hPa)
+`EP`: External pressure (hPa)\
 `CU`: CPU load (%)\
 `MU`: Memory used (%)\
 `FT`: FPGA temperature (degC)
