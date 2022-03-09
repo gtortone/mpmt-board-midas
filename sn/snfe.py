@@ -71,7 +71,7 @@ class Sensors(midas.frontend.EquipmentBase):
       I1 = round(tlaData[1]/1000, 3)
       I2 = round(tlaData[3]/1000, 3)
       P1 = round(V1 * I1, 3)
-      P2 = round(V2 * I2, 3)
+      P2 = round(V1 * I2, 3)
       self.client.odb_set(f"{self.odb_settings_dir}/Voltage 5V", V1)
       self.client.odb_set(f"{self.odb_settings_dir}/Voltage 3.3V", V2)
       self.client.odb_set(f"{self.odb_settings_dir}/Current POE channel A", I1)
