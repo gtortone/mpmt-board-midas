@@ -6,9 +6,9 @@ This MIDAS frontend provides data from Run Control registers.
 
 | key | type | description | 
 |------|------|-----------|
-|```Enable ADC sampling	```|bool[19]|Enable ADC acquisition for channel index|
-|```Power enable```|bool[19]|Power channel index|
-|```Overcurrent```|bool[19]|Overcurrent on channel index|
+|```Enable ADC sampling	```|int|Enable ADC acquisition for channel index|
+|```Power enable```|int|Power channel index|
+|```Overcurrent```|int|Overcurrent on channel index|
 |```Clock A OK```|book|Reference clock A status ok|
 |```Clock A lost```|book|Reference clock A lost|
 |```Clock A found```|book|Reference clock A found|
@@ -43,21 +43,21 @@ This MIDAS frontend provides data from Run Control registers.
 
 `Event id`: 2\
 `Mask`: MPMT id\
-`Bank name`: `RCnn`, `RCGL`  (nn: number of channel [0...18])
+`Bank name`: `RCCH`, `RCGL`
 
 #### Bank format
 
-- Events within `RCxx` bank are organized as follow:
+- Events within `RCCH` bank are organized as follow:
 
-`ADC`: ADC sampling\
-`POW`: Power status\
-`OC`: Overcurrent flag\
-`RM`: Channel ratemeter
+`ADC`: ADC sampling mask\
+`POW`: Power status mask\
+`OC`: Overcurrent flags mask\
+`RM0` - `RM18`: Channel ratemeter channel 0 - channl 18\
 
 ```
-Bank:RC15
-   1->    0        1        1    65535
-      (ADC)    (POW)     (OC)     (RM)
+Bank:RCCH
+   1->    0        1        1    65535   ...       0
+      (ADC)    (POW)     (OC)    (RM0)        (RM18)
 ```
 
 - Events within `RCGL` bank are organized as follow:
