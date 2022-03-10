@@ -2,9 +2,10 @@
 registers = {}
 
 default_settings = {
-   "Enable ADC sampling": [False] * 19,
-   "Power enable": [False] * 19,
-   "Overcurrent": [False] * 19,
+   "Board startup mode": ["none"] * 19,
+   "Enable ADC sampling": 0,
+   "Power enable": 0,
+   "Overcurrent": 0,
    "Clock A OK" : False,
    "Clock A lost": False,
    "Clock A found": False,
@@ -38,19 +39,19 @@ def configRegisters(basepath):
    registers[f'{basepath}/Enable ADC sampling'] = {
       "mode": "RW",
       "memaddr": 0,
-      "datatype": "boolset",
+      "datatype": "int",
       "count": 19,
    }
    registers[f'{basepath}/Power enable'] = {
       "mode": "RW",
       "memaddr": 1,
-      "datatype": "boolset",
+      "datatype": "int",
       "count": 19,
    }
    registers[f'{basepath}/Overcurrent'] = {
       "mode": "R",
       "memaddr": 2,
-      "datatype": "boolset",
+      "datatype": "int",
       "count": 19,
    }
    registers[f'{basepath}/Clock A OK'] = {

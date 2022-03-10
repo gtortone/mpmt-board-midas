@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 import sys
+import copy
 import mmap
+import time
 import midas
 import midas.frontend
 import midas.event
 import conf
 
 class RunControl(midas.frontend.EquipmentBase):
-
+   
    def __init__(self, client):
 
       if(midas.frontend.frontend_index == -1):
@@ -43,8 +45,11 @@ class RunControl(midas.frontend.EquipmentBase):
       conf.configRegisters(self.odb_settings_dir)
       self.regMap = conf.registers
 
-      self.scanRegisters()
-      #print(self.regMap)
+      self.set_status("Initializing...", "yellowLight")
+
+      self.scanRegisters(init=True)
+
+      client.odb_watch(f"{self.odb_settings_dir}/Board startup mode", self.watchBoardCommand, pass_changed_value_only=True)
   
       self.set_status("Initialized")
 
@@ -57,10 +62,12 @@ class RunControl(midas.frontend.EquipmentBase):
    #
    # update ODB keys from FPGA registers
    #
-   def scanRegisters(self):
+   def scanRegisters(self, init=False):
+      settings = copy.deepcopy(self.settings)
       for k,v in self.regMap.items():
 
          regval = self.readRegister(v["memaddr"])
+         basekey = k.split('/')[-1]
 
          if v["datatype"] == "bitset":       # bitset
             mask = (2 ** v["count"]) - 1
@@ -82,32 +89,35 @@ class RunControl(midas.frontend.EquipmentBase):
          elif v["datatype"] == "int":        # integer
             v["value"] = regval
 
-         if 'lastvalue' in v:
-            # this check is needed for ODB arrays because overwriting elements with same value
-            # triggers detailed_settings_changed_func and if there is a write in progress
-            # array will be updated with old values
+         if init:
             if v["datatype"] == "boolset" or v["datatype"] == "intset":
                for i in range(0, v["count"]):
-                  if v["value"][i] != v["lastvalue"][i]:
-                     self.client.odb_set(f'{k}[{i}]', v["value"][i])
+                  self.client.odb_set(f'{k}[{i}]', v["value"][i])
             else:
-               if (v["value"] != v["lastvalue"]):
+               self.client.odb_set(k, v["value"])
+         else:
+            if v["datatype"] == "boolset" or v["datatype"] == "intset":
+               for i in range(0, v["count"]):
+                  if v["value"][i] != settings[basekey][i]:
+                     self.client.odb_set(f'{k}[{i}]', v["value"][i])
+                     #print(f"scanRegister: set {k}[{i}] to {v['value'][i]}")
+            else:
+               if v["value"] != settings[basekey]: 
                   self.client.odb_set(k, v["value"])
-         v["lastvalue"] = v["value"]
 
    def readout_func(self):
       self.scanRegisters()
       event = midas.event.Event()
       event.header.trigger_mask = midas.frontend.frontend_index
 
+      data = []
+      data.append(int(self.settings['Enable ADC sampling']))
+      data.append(int(self.settings['Power enable']))
+      data.append(int(self.settings['Overcurrent']))
       for idx in range(0,19):
-         data = []
-         data.append(int(self.settings['Enable ADC sampling'][idx]))
-         data.append(int(self.settings['Power enable'][idx]))
-         data.append(int(self.settings['Overcurrent'][idx]))
          data.append(int(self.settings['Channel ratemeter'][idx]))
 
-         event.create_bank(f"RC{str(idx).zfill(2)}", midas.TID_INT, data)
+      event.create_bank("RCCH", midas.TID_INT, data)
 
       data = []
       data.append(int(self.readRegister(3)))          # clock diagnostic bits
@@ -125,9 +135,40 @@ class RunControl(midas.frontend.EquipmentBase):
       return event
 
    #
+   # watch callback for board startup mode
+   #
+   def watchBoardCommand(self, client, path, idx, cmd):
+      cmd = str.lower(cmd)
+      if cmd == 'none' or idx == -1:
+         return
+      adc = self.readRegister(0)
+      power = self.readRegister(1)
+      if cmd == "bootloader" or cmd == "bl":
+         adc = (1<<idx) | adc
+         self.writeRegister(0, adc)
+         power = ~(1<<idx) & power
+         self.writeRegister(1, power)
+         time.sleep(0.1)
+         power = (1<<idx) | power
+         self.writeRegister(1, power)
+      elif cmd == "firmware" or cmd == "fw":
+         power = ~(1<<idx) & power
+         self.writeRegister(1, power)
+         adc = ~(1<<idx) & adc
+         self.writeRegister(0, adc)
+         time.sleep(0.1)
+         power = (1<<idx) | power
+         self.writeRegister(1, power)
+      # reset board command
+      self.client.odb_set(f'{path}[{idx}]', 'none')
+
+   #
    # update FPGA registers from ODB keys changed by user
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
+      #print(f'ODB callback: {path}[{idx}] - new value {new_value}')
+      if path == f"{self.odb_settings_dir}/Board startup mode":
+         return
       if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
       if idx is not None:  # array element is changed
@@ -151,7 +192,7 @@ class RunControl(midas.frontend.EquipmentBase):
             regval = regval & mask     # clear bitset
             regval = regval | (new_value << self.regMap[path]["startBit"])
             self.writeRegister(self.regMap[path]["memaddr"], regval)
-            
+
 class MyFrontend(midas.frontend.FrontendBase):
 
    def __init__(self):
