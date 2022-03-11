@@ -11,6 +11,7 @@ broadcast address).
 |------|------|-----------|
 |```Port device```|string|specify UART device to use for communication|
 |```Report Modbus errors```|bool|redirect error messages to MIDAS messages|
+|```Probe modules```|bool|start modules probing|
 |```Online```|bool[19]|each index reports if a module is online|
 |```Power command```|string|send a power command (on,off,reset) to specified module|
 |```Status```|int|status of module index (see status table)|
