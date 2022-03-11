@@ -56,10 +56,18 @@ class HighVoltage(midas.frontend.EquipmentBase):
 
       # initialize ODB watchers
       client.odb_watch(f'{self.odb_settings_dir}/Power command', self.watchPowerCommand, pass_changed_value_only=True)
+      client.odb_watch(f'{self.odb_settings_dir}/Probe modules', self.watchProbeCommand, pass_changed_value_only=True)
 
       self.updateODB(update_rw_settings=True)
 
       self.set_status("Initialized")
+
+   def watchProbeCommand(self, client, path, idx, value):
+      if value == True:
+         self.client.msg(f'HV channel probing started')
+         self.probeHV()
+         self.client.msg(f'HV channel probing finished')
+      self.client.odb_set(f'{self.odb_settings_dir}/Probe modules', False)
 
    def watchPowerCommand(self, client, path, idx, cmd):
       cmd = str.lower(cmd)
@@ -139,6 +147,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
       if path == f'{self.odb_settings_dir}/Power command':
          return
       if path == f'{self.odb_settings_dir}/Online':
+         return
+      if path == f'{self.odb_settings_dir}/Probe modules':
          return
       if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
