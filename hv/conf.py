@@ -2,7 +2,7 @@
 registers = {}
 
 scratch_ro_settings = {
-   "Status": [0] * 19,
+   "Status": [1] * 19,     # 1: DOWN
    "V": [0.0] * 19,
    "I": [0.0] * 19,
    "T": [0.0] * 19,
