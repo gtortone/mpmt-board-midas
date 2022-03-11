@@ -6,6 +6,7 @@ This MIDAS frontend provides data from Run Control registers.
 
 | key | type | description | 
 |------|------|-----------|
+|```Board startup mode```|string[19]|Set board startup mode (fw, bl)|
 |```Enable ADC sampling	```|int|Enable ADC acquisition for channel index|
 |```Power enable```|int|Power channel index|
 |```Overcurrent```|int|Overcurrent on channel index|
@@ -52,8 +53,7 @@ This MIDAS frontend provides data from Run Control registers.
 `ADC`: ADC sampling mask\
 `POW`: Power status mask\
 `OC`: Overcurrent flags mask\
-`RM0` - `RM18`: Channel ratemeter channel 0 - channl 18\
-
+`RM0` - `RM18`: Channel ratemeter channel 0...18
 ```
 Bank:RCCH
    1->    0        1        1    65535   ...       0
