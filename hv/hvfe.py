@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-import mmap
 import copy
 import midas
 import midas.frontend
@@ -29,6 +28,11 @@ class HighVoltage(midas.frontend.EquipmentBase):
       default_common.read_when = midas.RO_ALWAYS
       default_common.log_history = 2      # history is enabled, data generated with period_ms frequency
 
+      self.odb_power_enable = '/Equipment/MPMT-RunControl' + str(midas.frontend.frontend_index).zfill(2) \
+         + '/Settings/Power enable'
+      self.odb_adc_enable = '/Equipment/MPMT-RunControl' + str(midas.frontend.frontend_index).zfill(2) \
+         + '/Settings/Enable ADC sampling'
+
       midas.frontend.EquipmentBase.__init__(self, client, equip_name, default_common, conf.default_settings)
 
       self.set_status("Initializing...", "yellowLight")
@@ -38,6 +42,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
  
       self.port = self.settings["Port device"]
       # set online HV modules
+      self.probe_in_progress = False
       self.probeHV()
 
       # initialize registers map
@@ -63,6 +68,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.set_status("Initialized")
 
    def watchProbeCommand(self, client, path, idx, value):
+      if self.probe_in_progress:
+         return
       if value == True:
          self.client.msg(f'HV channel probing started')
          self.probeHV()
@@ -70,6 +77,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.client.odb_set(f'{self.odb_settings_dir}/Probe modules', False)
 
    def watchPowerCommand(self, client, path, idx, cmd):
+      if self.probe_in_progress:
+         return
       cmd = str.lower(cmd)
       addr = idx+1
       if cmd == 'none' or idx == -1:
@@ -95,24 +104,40 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.client.odb_set(f'{self.odb_settings_dir}/Power command[{idx}]', 'none')
 
    def probeHV(self):
+      self.probe_in_progress = True
+
+      # power on all HV modules and turn off ADC enable to prevent bootloader
+      self.client.odb_set(f'{self.odb_adc_enable}', 0)
+      self.client.odb_set(f'{self.odb_power_enable}', 0x7FFFF)
+      #
+
       l = [False] * 19
+      mask = 0
       for addr in range(1,20):
          found = self.hv.probe(self.port, addr)
          if found:
             l[addr-1] = True
+            mask += 2 ** (addr-1)
       self.client.odb_set(f'{self.odb_settings_dir}/Online', l)
 
+      # apply online mask to Power Enable register
+      self.client.odb_set(f'{self.odb_power_enable}', mask)
+
+      self.probe_in_progress = False
    #
    # update ODB keys from HV Modbus registers
    #
    def updateODB(self, update_rw_settings=False):
+      if self.probe_in_progress:
+         return
       settings = copy.deepcopy(conf.scratch_ro_settings)
       if update_rw_settings is True:    # update read-only and read-write settings
         settings.update(copy.deepcopy(conf.scratch_rw_settings))
-      # avoid using of self.settings here due to inconsistency first invocation after init
-      hvOnline = self.client.odb_get(f'{self.odb_settings_dir}/Online')
+      hvOnline = self.settings['Online']
+      hvPower = self.client.odb_get(f'{self.odb_power_enable}')
       for addr in range(1,20):
-         if hvOnline[addr-1]:
+         # check if HV module is probed and powered 
+         if hvOnline[addr-1] and (hvPower & (1<<(addr-1)) > 0):
             try:
                monData = self.hv.readMonRegisters(addr)
             except:
@@ -140,6 +165,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
    # update Modbus registers from ODB keys changed by user
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
+      if self.probe_in_progress:
+         return
       if path == f'{self.odb_settings_dir}/Port device':
          return
       if path == f'{self.odb_settings_dir}/Report Modbus errors':
@@ -172,8 +199,10 @@ class HighVoltage(midas.frontend.EquipmentBase):
       event.header.trigger_mask = midas.frontend.frontend_index
 
       hvOnline = self.settings['Online']
+      hvPower = self.client.odb_get(f'{self.odb_power_enable}')
       for idx in range(0,19):
-         if hvOnline[idx]:
+         # check if HV module is probed and powered
+         if hvOnline[idx] and (hvPower & (1<<idx) > 0):
             data = []
             data.append(self.settings["Status"][idx])
             data.append(self.settings["V"][idx])
