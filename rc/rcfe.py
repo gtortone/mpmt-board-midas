@@ -47,6 +47,7 @@ class RunControl(midas.frontend.EquipmentBase):
 
       self.set_status("Initializing...", "yellowLight")
 
+      self.command_in_progress = False
       self.scanRegisters(init=True)
 
       client.odb_watch(f"{self.odb_settings_dir}/Board startup mode", self.watchBoardCommand, pass_changed_value_only=True)
@@ -63,6 +64,8 @@ class RunControl(midas.frontend.EquipmentBase):
    # update ODB keys from FPGA registers
    #
    def scanRegisters(self, init=False):
+      if self.command_in_progress:
+         return
       settings = copy.deepcopy(self.settings)
       for k,v in self.regMap.items():
 
@@ -144,21 +147,25 @@ class RunControl(midas.frontend.EquipmentBase):
       adc = self.readRegister(0)
       power = self.readRegister(1)
       if cmd == "bootloader" or cmd == "bl":
+         self.command_in_progress = True
          adc = (1<<idx) | adc
          self.writeRegister(0, adc)
          power = ~(1<<idx) & power
          self.writeRegister(1, power)
-         time.sleep(0.1)
+         time.sleep(0.5)
          power = (1<<idx) | power
          self.writeRegister(1, power)
+         self.command_in_progress = False
       elif cmd == "firmware" or cmd == "fw":
+         self.command_in_progress = True
          power = ~(1<<idx) & power
          self.writeRegister(1, power)
          adc = ~(1<<idx) & adc
          self.writeRegister(0, adc)
-         time.sleep(0.1)
+         time.sleep(0.5)
          power = (1<<idx) | power
          self.writeRegister(1, power)
+         self.command_in_progress = False
       # reset board command
       self.client.odb_set(f'{path}[{idx}]', 'none')
 
@@ -167,7 +174,16 @@ class RunControl(midas.frontend.EquipmentBase):
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
       #print(f'ODB callback: {path}[{idx}] - new value {new_value}')
+      if self.command_in_progress:
+         return
       if path == f"{self.odb_settings_dir}/Board startup mode":
+         return
+      # if 'Power enable' register is changed power off changed bits on 'Enable ADC sampling' register
+      if path == f"{self.odb_settings_dir}/Power enable":
+         prev_adc = self.readRegister(0)
+         prev_power = self.readRegister(1)
+         self.writeRegister(0, prev_adc & ~(prev_power ^ new_value))
+         self.writeRegister(1, new_value)
          return
       if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
