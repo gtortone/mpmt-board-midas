@@ -138,26 +138,28 @@ class HighVoltage(midas.frontend.EquipmentBase):
       for addr in range(1,20):
          # check if HV module is probed and powered 
          if hvOnline[addr-1] and (hvPower & (1<<(addr-1)) > 0):
+            comerr = False
             try:
                monData = self.hv.readMonRegisters(addr)
             except:
+               comerr = True
                if self.settings["Report Modbus errors"] == True:
                   self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
-            else:
-               settings["Status"][addr-1] = monData['status']
-               settings["V"][addr-1] = monData['V']
-               settings["I"][addr-1] = monData['I']
-               settings["T"][addr-1] = monData['T']
-               settings["Alarm"][addr-1] = monData['alarm']
-               if update_rw_settings is True: # include read-write settings also
-                  settings["Vset"][addr-1] = monData['Vset']
-                  settings["Rate up"][addr-1] = monData['rateUP']
-                  settings["Rate down"][addr-1] = monData['rateDN']
-                  settings["Limit V"][addr-1] = monData['limitV']
-                  settings["Limit I"][addr-1] = monData['limitI']
-                  settings["Limit T"][addr-1] = monData['limitT']
-                  settings["Trip time"][addr-1] = monData['limitTRIP']
-                  settings["Trigger threshold"][addr-1] = monData['threshold']
+            
+            settings["Status"][addr-1] = monData['status'] if not comerr else self.settings["Status"][addr-1]
+            settings["V"][addr-1] = monData['V'] if not comerr else self.settings["V"][addr-1]
+            settings["I"][addr-1] = monData['I'] if not comerr else self.settings["I"][addr-1]
+            settings["T"][addr-1] = monData['T'] if not comerr else self.settings["T"][addr-1]
+            settings["Alarm"][addr-1] = monData['alarm'] if not comerr else self.settings["Alarm"][addr-1]
+            if update_rw_settings is True: # include read-write settings also
+               settings["Vset"][addr-1] = monData['Vset'] if not comerr else self.settings["Vset"][addr-1]
+               settings["Rate up"][addr-1] = monData['rateUP'] if not comerr else self.settings["Rate up"][addr-1]
+               settings["Rate down"][addr-1] = monData['rateDN'] if not comerr else self.settings["Rate down"][addr-1]
+               settings["Limit V"][addr-1] = monData['limitV'] if not comerr else self.settings["Limit V"][addr-1]
+               settings["Limit I"][addr-1] = monData['limitI'] if not comerr else self.settings["Limit I"][addr-1]
+               settings["Limit T"][addr-1] = monData['limitT'] if not comerr else self.settings["Limit T"][addr-1]
+               settings["Trip time"][addr-1] = monData['limitTRIP'] if not comerr else self.settings["Trip time"][addr-1]
+               settings["Trigger threshold"][addr-1] = monData['threshold'] if not comerr else self.settings["Trigger threshold"][addr-1]
 
       self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
 
