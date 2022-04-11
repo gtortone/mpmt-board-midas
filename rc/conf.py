@@ -179,7 +179,7 @@ def configRegisters(basepath):
       "datatype": "int",
    }
    registers[f'{basepath}/Unix timestamp'] = {
-      "mode": "RW",
+      "mode": "R",
       "memaddr": 5,
       "datatype": "int",
    }
