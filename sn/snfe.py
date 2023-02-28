@@ -97,9 +97,14 @@ class Sensors(midas.frontend.EquipmentBase):
       self.client.odb_set(f"{self.odb_settings_dir}/On-board pressure", round(bmeData[1], 3))
       self.client.odb_set(f"{self.odb_settings_dir}/On-board humidity", round(bmeData[2], 3)) 
 
-      bmeData = self.bmeExt.readAll()
-      self.client.odb_set(f"{self.odb_settings_dir}/External temperature", round(bmeData[0], 3))
-      self.client.odb_set(f"{self.odb_settings_dir}/External pressure", round(bmeData[1], 3))
+  
+      try:
+         bmeData = self.bmeExt.readAll()
+      except:
+         pass
+      else:
+         self.client.odb_set(f"{self.odb_settings_dir}/External temperature", round(bmeData[0], 3))
+         self.client.odb_set(f"{self.odb_settings_dir}/External pressure", round(bmeData[1], 3))
 
    def readout_func(self):
       self.updateODB()
