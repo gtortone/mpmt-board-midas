@@ -22,7 +22,7 @@ scratch_rw_settings = {
 }
 
 default_settings = {
-   "Port device": "/dev/ttyPS1",
+   "Port device": "/dev/ttyPS2",
    "Report Modbus errors": False, 
    "Probe modules": False,
    "Online": [False] * 19,
