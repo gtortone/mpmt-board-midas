@@ -64,6 +64,7 @@ class RunControl(midas.frontend.EquipmentBase):
    # update ODB keys from FPGA registers
    #
    def scanRegisters(self, init=False):
+
       if self.command_in_progress:
          return
       settings = copy.deepcopy(self.settings)
@@ -71,6 +72,7 @@ class RunControl(midas.frontend.EquipmentBase):
 
          regval = self.readRegister(v["memaddr"])
          basekey = k.split('/')[-1]
+         #print(f"basekey: {basekey} : regval: {regval}")
 
          if v["datatype"] == "bitset":       # bitset
             mask = (2 ** v["count"]) - 1

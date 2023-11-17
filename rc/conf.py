@@ -40,19 +40,19 @@ def configRegisters(basepath):
       "mode": "RW",
       "memaddr": 0,
       "datatype": "int",
-      "count": 19,
+      "count": 1,
    }
    registers[f'{basepath}/Power enable'] = {
       "mode": "RW",
       "memaddr": 1,
       "datatype": "int",
-      "count": 19,
+      "count": 1,
    }
    registers[f'{basepath}/Overcurrent'] = {
       "mode": "R",
       "memaddr": 2,
       "datatype": "int",
-      "count": 19,
+      "count": 1,
    }
    registers[f'{basepath}/Clock A OK'] = {
       "mode": "R",
