@@ -212,7 +212,8 @@ class RunControl(midas.frontend.EquipmentBase):
 class MyFrontend(midas.frontend.FrontendBase):
 
    def __init__(self):
-      midas.frontend.FrontendBase.__init__(self, "rcfe")
+      midas.frontend.parse_args()
+      midas.frontend.FrontendBase.__init__(self, "rcfe" + str(midas.frontend.frontend_index).zfill(2))
       self.add_equipment(RunControl(self.client))
 
    def begin_of_run(self, run_number):

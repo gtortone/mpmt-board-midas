@@ -134,7 +134,8 @@ class Sensors(midas.frontend.EquipmentBase):
 class MyFrontend(midas.frontend.FrontendBase):
 
    def __init__(self):
-      midas.frontend.FrontendBase.__init__(self, "snfe")
+      midas.frontend.parse_args()
+      midas.frontend.FrontendBase.__init__(self, "snfe" + str(midas.frontend.frontend_index).zfill(2))
       self.add_equipment(Sensors(self.client))
 
    def begin_of_run(self, run_number):
