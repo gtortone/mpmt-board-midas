@@ -47,8 +47,9 @@ function handle_banner_probe() {
 }
 
 function getOnlineModulesArray() {
+  mpmtid = localStorage.mpmtid; 
   return new Promise(function (resolve, reject) {
-    mjsonrpc_db_get_values(["/Equipment/MPMT-HighVoltage01/Settings/Online"])
+    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online`])
       .then(function (rpc) {
         resolve(rpc.result.data[0]);
       })
@@ -59,8 +60,9 @@ function getOnlineModulesArray() {
 }
 
 function getOnlineModulesList() {
+  mpmtid = localStorage.mpmtid; 
   return new Promise(function (resolve, reject) {
-    mjsonrpc_db_get_values(["/Equipment/MPMT-HighVoltage01/Settings/Online"])
+    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online`])
       .then(function (rpc) {
         let mlist = [];
         blist = rpc.result.data[0];
@@ -76,9 +78,10 @@ function getOnlineModulesList() {
 }
 
 function getOnModulesList() {
+  mpmtid = localStorage.mpmtid;
   return new Promise(function (resolve, reject) {
     mjsonrpc_db_get_values([
-      "/Equipment/MPMT-RunControl01/Settings/Power enable",
+      `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
     ])
       .then(function (rpc) {
         let mlist = [];
@@ -97,12 +100,13 @@ function getOC(value, ch) {
 }
 
 function HVProbe() {
+  mpmtid = localStorage.mpmtid;
   if (authuser()) {
     (async () => {
       probe_in_progress = true;
       // start probing
       await mjsonrpc_db_set_value(
-        `/Equipment/MPMT-HighVoltage01/Settings/Probe modules`,
+        `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules`,
         true
       ).catch((error) => {
         mjsonrpc_error_alert(error);
@@ -112,7 +116,7 @@ function HVProbe() {
       let probing = true;
       while (probing) {
         await mjsonrpc_db_get_values([
-          "/Equipment/MPMT-HighVoltage01/Settings/Probe modules",
+          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules`,
         ])
           .then((rpc) => {
             probing = rpc.result.data[0];
@@ -165,7 +169,7 @@ function getHVStatusAll(value) {
 function getHVAlarmAll(value) {
   if (probe_in_progress) return;
   getOnModulesList().then((modules) => {
-    modules.map((ch) => {
+    modules.map((ch, i) => {
       let str = "";
       if (value[i] == 0) {
         str = "none";
@@ -195,6 +199,7 @@ function adcmask_to_checkboxes() {
 }
 
 function checkboxes_to_adcmask() {
+  mpmtid = localStorage.mpmtid;
   if (probe_in_progress) return;
   getOnlineModulesList().then((modules) => {
     let mask = 0;
@@ -208,12 +213,7 @@ function checkboxes_to_adcmask() {
     // Avoid negative hex values in JS.
     mask = mask >>> 0;
 
-    mjsonrpc_db_set_value(
-      `/Equipment/MPMT-RunControl01/Settings/Enable ADC sampling`,
-      mask
-    ).catch((error) => {
-      mjsonrpc_error_alert(error);
-    });
+    //mjsonrpc_db_set_value(`/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,mask).catch((error) => {mjsonrpc_error_alert(error);});
   });
 }
 
@@ -222,10 +222,11 @@ function checkboxes_to_adcmask() {
  */
 
 function check_poweroff(ch) {
+  mpmtid = localStorage.mpmtid; 
   // check power-off request
   cb = document.getElementById("pw" + ch);
   if (cb.checked == false) {
-    mjsonrpc_db_get_values(["/Equipment/MPMT-HighVoltage01/Settings/Status"])
+    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status`])
       .then((rpc) => {
         let status = rpc.result.data[0][ch];
         if (status != 1) {
@@ -256,6 +257,7 @@ function powermask_to_checkboxes() {
 }
 
 function checkboxes_to_powermask() {
+  mpmtid = localStorage.mpmtid;
   if (probe_in_progress) return;
   getOnlineModulesList().then((modules) => {
     let mask = 0;
@@ -272,7 +274,7 @@ function checkboxes_to_powermask() {
     mask = mask >>> 0;
 
     mjsonrpc_db_set_value(
-      `/Equipment/MPMT-RunControl01/Settings/Power enable`,
+      `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
       mask
     ).catch((error) => {
       mjsonrpc_error_alert(error);
@@ -313,12 +315,13 @@ function showFailure(info = "") {
 }
 
 function SetHV() {
+  mpmtid = localStorage.mpmtid;
   if (authuser()) {
     voltage = parseInt(prompt("Please enter the HV value (V):", ""));
     getOnlineModulesList().then((modules) => {
       modules.map((ch) => {
         mjsonrpc_db_set_value(
-          `/Equipment/MPMT-HighVoltage01/Settings/Vset[${ch}]`,
+          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]`,
           voltage
         );
       });
@@ -328,6 +331,7 @@ function SetHV() {
 }
 
 function EnHV() {
+  mpmtid = localStorage.mpmtid;
   if (authuser()) {
     getOnlineModulesList().then((modules) => {
       let mask = 0;
@@ -336,7 +340,7 @@ function EnHV() {
       });
       console.log(mask);
       mjsonrpc_db_set_value(
-        `/Equipment/MPMT-RunControl01/Settings/Power enable`,
+        `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
         mask
       );
     });
@@ -345,12 +349,13 @@ function EnHV() {
 }
 
 function SetTh() {
+  mpmtid = localStorage.mpmtid;
   if (authuser()) {
     thr = prompt("Please enter the Threshold value (mV):", "");
     getOnModulesList().then((modules) => {
       modules.map((ch) => {
         mjsonrpc_db_set_value(
-          `/Equipment/MPMT-HighVoltage01/Settings/Trigger threshold[${ch}]`,
+          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]`,
           thr
         );
       });
@@ -360,6 +365,7 @@ function SetTh() {
 }
 
 function EnableAll() {
+  mpmtid = localStorage.mpmtid;
   if (authuser()) {
     getOnlineModulesList().then((modules) => {
       let mask = 0;
@@ -367,20 +373,18 @@ function EnableAll() {
         mask += 2 ** ch;
       });
       mjsonrpc_db_set_value(
-        `/Equipment/MPMT-RunControl01/Settings/Power enable`,
+        `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
         mask
       );
-      mjsonrpc_db_set_value(
-        `/Equipment/MPMT-RunControl01/Settings/Enable ADC sampling`,
-        mask
-      );
+      //mjsonrpc_db_set_value(`/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,mask);
     });
     showSuccess();
   }
 }
 
 function HVon(index) {
-  path = `/Equipment/MPMT-HighVoltage01/Settings/Power command[${index}]`;
+  mpmtid = localStorage.mpmtid;
+  path = `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power command[${index}]`;
   mjsonrpc_db_paste([path], ["on"])
     .then(function (rpc) {
       showSuccess();
@@ -391,7 +395,8 @@ function HVon(index) {
 }
 
 function HVoff(index) {
-  path = `/Equipment/MPMT-HighVoltage01/Settings/Power command[${index}]`;
+  mpmtid = localStorage.mpmtid;
+  path = `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power command[${index}]`;
   mjsonrpc_db_paste([path], ["off"])
     .then(function (rpc) {
       showSuccess();
@@ -402,7 +407,8 @@ function HVoff(index) {
 }
 
 function HVReset(index) {
-  path = `/Equipment/MPMT-HighVoltage01/Settings/Power command[${index}]`;
+  mpmtid = localStorage.mpmtid;
+  path = `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power command[${index}]`;
   mjsonrpc_db_paste([path], ["reset"])
     .then(function (rpc) {
       showSuccess();
@@ -419,11 +425,12 @@ function Pulser_freq(value, element) {
 }
 
 function SetClk(value) {
+  mpmtid = localStorage.mpmtid;
   Paths = [
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext select",
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext auto select",
-    "/Equipment/MPMT-RunControl01/Settings/Reference clock A-B select",
-    "/Equipment/MPMT-RunControl01/Settings/Clock A-B auto select",
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext select`,
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext auto select`,
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Reference clock A-B select`,
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock A-B auto select`,
   ];
   mjsonrpc_db_paste(Paths, [0, 0, value, 0])
     .then(function (rpc) {
@@ -435,9 +442,10 @@ function SetClk(value) {
 }
 
 function SetClkInt() {
+  mpmtid = localStorage.mpmtid;
   Paths = [
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext select",
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext auto select",
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext select`,
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext auto select`,
   ];
   mjsonrpc_db_paste(Paths, [1, 0])
     .then(function (rpc) {
@@ -450,8 +458,8 @@ function SetClkInt() {
 
 function SetClkInt() {
   Paths = [
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext select",
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext auto select",
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext select`,
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext auto select`,
   ];
   mjsonrpc_db_paste(Paths, [1, 0])
     .then(function (rpc) {
@@ -464,8 +472,8 @@ function SetClkInt() {
 
 function SetClkAuto() {
   Paths = [
-    "/Equipment/MPMT-RunControl01/Settings/Clock A-B auto select",
-    "/Equipment/MPMT-RunControl01/Settings/Clock int-ext auto select",
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock A-B auto select`,
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext auto select`,
   ];
   mjsonrpc_db_paste(Paths, [1, 1])
     .then(function (rpc) {
@@ -492,6 +500,6 @@ function handle_adc_checkbox(ch) {
     let adc_input = document.getElementById(`adc${ch}`);
     adc_input.checked = false;
     let elems = document.getElementsByClassName(`hidewhenoff${ch}`);
-    for (let i = 0; i < elems.length; i++) elems[i].style.display = "none";
+    for (let i = 0; i < elems.length; i++) elems[i].style.display = "";
   }
 }
