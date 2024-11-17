@@ -2,6 +2,8 @@
 
 import sys
 import copy
+import time
+import mmap
 import midas
 import midas.frontend
 import midas.event
@@ -10,6 +12,11 @@ from hvmodbus import HVModbus
 import conf
 
 class HighVoltage(midas.frontend.EquipmentBase):
+
+   class HighVoltageParams():
+      port: str
+      host: str
+      mode: str
 
    def __init__(self, client):
 
@@ -28,19 +35,33 @@ class HighVoltage(midas.frontend.EquipmentBase):
       default_common.read_when = midas.RO_ALWAYS
       default_common.log_history = 2      # history is enabled, data generated with period_ms frequency
 
-      self.odb_power_enable = '/Equipment/MPMT-RunControl' + str(midas.frontend.frontend_index).zfill(2) \
-         + '/Settings/Power enable'
-      self.odb_adc_enable = '/Equipment/MPMT-RunControl' + str(midas.frontend.frontend_index).zfill(2) \
-         + '/Settings/Enable ADC sampling'
-
       midas.frontend.EquipmentBase.__init__(self, client, equip_name, default_common, conf.default_settings)
 
       self.set_status("Initializing...", "yellowLight")
 
+      # open memory mapped device for run control
+      try:
+         self.fid = open('/dev/uio0', 'r+b', 0)
+      except:
+         client.msg("UIO device /dev/uio0 not found", is_error=True)
+         sys.exit(-1)  
+
+      mem = mmap.mmap(self.fid.fileno(), 65536)
+      mv = memoryview(mem)
+      self.regs = mv.cast('I')
+
+      self.param = self.HighVoltageParams()
+      # by default HV frontend in TCP mode works only on localhost mbusd
+      self.param.host = "localhost"
+      self.param.port = self.settings["Port device"]
+      if self.settings["RTU mode"] == False:
+         self.param.mode = "tcp"
+      else:
+         self.param.mode = "rtu"
+
       # main hv modbus object
-      self.hv = HVModbus()
+      self.hv = HVModbus(self.param)
  
-      self.port = self.settings["Port device"]
       # set online HV modules
       self.probe_in_progress = False
       self.probeHV()
@@ -66,6 +87,12 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.updateODB(update_rw_settings=True)
 
       self.set_status("Initialized")
+
+   def readRegister(self, offset):
+      return self.regs[offset]
+
+   def writeRegister(self, offset, value):
+      self.regs[offset] = value
 
    def watchProbeCommand(self, client, path, idx, value):
       if self.probe_in_progress:
@@ -107,21 +134,28 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.probe_in_progress = True
 
       # power on all HV modules and turn off ADC enable to prevent bootloader
-      self.client.odb_set(f'{self.odb_adc_enable}', 0)
-      self.client.odb_set(f'{self.odb_power_enable}', 0x7FFFF)
-      #
+      self.writeRegister(0, 0)
+      value = 1
+      for i in range(0,19):
+         self.writeRegister(1, value)
+         value = value | (value << 1)
+         time.sleep(0.1)
 
       l = [False] * 19
       mask = 0
       for addr in range(1,20):
-         found = self.hv.probe(self.port, addr)
+         found = self.hv.probe(addr)
          if found:
             l[addr-1] = True
             mask += 2 ** (addr-1)
       self.client.odb_set(f'{self.odb_settings_dir}/Online', l)
 
       # apply online mask to Power Enable register
-      self.client.odb_set(f'{self.odb_power_enable}', mask)
+      value = 1
+      for i in range(0,19):
+         self.writeRegister(1, mask & value)
+         value = value | (value << 1)
+         time.sleep(0.1)
 
       self.probe_in_progress = False
    #
@@ -134,7 +168,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
       if update_rw_settings is True:    # update read-only and read-write settings
         settings.update(copy.deepcopy(conf.scratch_rw_settings))
       hvOnline = self.settings['Online']
-      hvPower = self.client.odb_get(f'{self.odb_power_enable}')
+      #hvPower = self.client.odb_get(f'{self.odb_power_enable}')
+      hvPower = self.readRegister(1)
       for addr in range(1,20):
          # check if HV module is probed and powered 
          if hvOnline[addr-1] and (hvPower & (1<<(addr-1)) > 0):
@@ -179,6 +214,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
          return
       if path == f'{self.odb_settings_dir}/Probe modules':
          return
+      if path == f'{self.odb_settings_dir}/Grid display':
+         return
       if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
       if idx is not None:  # array element is changed
@@ -201,7 +238,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
       event.header.trigger_mask = midas.frontend.frontend_index
 
       hvOnline = self.settings['Online']
-      hvPower = self.client.odb_get(f'{self.odb_power_enable}')
+      #hvPower = self.client.odb_get(f'{self.odb_power_enable}')
+      hvPower = self.readRegister(1)
       for idx in range(0,19):
          # check if HV module is probed and powered
          if hvOnline[idx] and (hvPower & (1<<idx) > 0):

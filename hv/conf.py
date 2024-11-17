@@ -22,6 +22,7 @@ scratch_rw_settings = {
 }
 
 default_settings = {
+   "RTU mode": False,
    "Port device": "/dev/ttyPS2",
    "Report Modbus errors": False, 
    "Probe modules": False,
@@ -39,7 +40,10 @@ default_settings = {
    "Limit T": [0] * 19,
    "Trip time": [0] * 19,
    "Trigger threshold": [0] * 19,
-   "Alarm": [0] * 19
+   "Alarm": [0] * 19,
+   "Names": [ "Status", "V", "Power command", "T", "I", "Vset", "Rate up", "Rate down", "Limit V", "Limit I",
+               "Limit T", "Trip time", "Trigger threshold", "Alarm"
+            ]
 }
 
 def configRegisters(basepath):
