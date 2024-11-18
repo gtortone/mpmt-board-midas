@@ -9,7 +9,7 @@
     <script src="mhttpd.js"></script>
     <script src="toastify.js"></script>
     <script src="mpmt.js"></script>
-    <title>Hyper-Kamiokande mPMT Control Panel</title>
+    <title>mPMT Control Panel</title>
 
     <style>
       * {
@@ -61,19 +61,15 @@
       //mjsonrpc_set_url("http://lxgentor.na.infn.it:8080")
 
       function init() {
-        check_fe_running("rcfe");
-        check_fe_running("hvfe");
-        check_fe_running("snfe");
 
-        const queryString = window.location.search;
-        const urlParams = new URLSearchParams(queryString);
-        let mpmtid = "01"
-        if (urlParams.has('mpmtid'))
-           mpmtid = urlParams.get('mpmtid') 
+        mpmtid = document.getElementById("mpmt_id").options[document.getElementById("mpmt_id").selectedIndex].value
 
-        localStorage.mpmtid = mpmtid;
+        check_fe_running("hvfe", mpmtid)
+        check_fe_running("rcfe", mpmtid)
+        check_fe_running("snfe", mpmtid)
 
         let html = "";
+
         html += '<table id="hvtable" class="mtable">';
         html +=
           '<tr><th colspan="19" class="mtableheader">mPMT Channels control</th></tr>';
@@ -91,7 +87,7 @@
         html += "</td> </tr>";
         html += '<tr id="probing_banner" style="display: none;"><td colspan="19" style="background-color: darkred; font-weight: bold; color: yellow; text-align: center;">HV probing in progress</td></tr>'
         html +=
-		      '<div id="probing" style="display: none;" class="modbvalue" colspan="19" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules" onchange="handle_banner_probe()" onload="onchange()"></div>';
+            '<div id="probing" style="display: none;" class="modbvalue" colspan="19" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules" onchange="handle_banner_probe()" onload="onchange()"></div>';
         html += "<tr>";
         html += "<th> CH# </th>";
         html += "<th>Pwr_En</th>";
@@ -118,10 +114,10 @@
           modules.map(function (ch) {
             html += `<tr>`;
 		  html += `<td class="modbbox ledbig" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online[${ch}]" data-color="lightgreen" data-background-color="red">${ch}</td>`;
-        html += `<td style="text-align: center"><input id=pw${ch} type="checkbox"></td>`;
+        html += `<td style="text-align: center"><input id=pw${ch} type="checkbox" onclick="checkboxes_to_powermask()"></td>`;
         html += `<td><div class="hidewhenoff${ch}" name="modbvalue" data-odb-path="Equipment/MPMT-RunControl${mpmtid}/Settings/Channel ratemeter[${ch}]"></div></td>`;
         html += `<td><div class="modbbox ledbig hidewhenoff${ch}" data-odb-path="Equipment/MPMT-RunControl${mpmtid}/Settings/Overcurrent" data-color="lightgreen" data-background-color="red" data-formula="getOC(x, ${ch})"></div></td>`;
-        html += `<td style="text-align: center"><div class="hidewhenoff${ch}"><input id=adc${ch} type="checkbox"></div></td>`;
+        html += `<td style="text-align: center"><div class="hidewhenoff${ch}"><input id=adc${ch} type="checkbox" onclick="checkboxes_to_adcmask()" ></div></td>`;
         html += `
 		  	<td>
 		  	<div class="hidewhenoff${ch}">
@@ -176,18 +172,18 @@
         document.getElementById("id22").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Peak delay`)
         document.getElementById("id23").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Dark delay`)
         document.getElementById("id24").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Dead time`)
-      }
+
+     } // end init
     </script>
   </head>
 
-  <body class="mcss" onload="init();">
+  <body class="mcss" onload="init()">
     <!-- header and side navigation will be filled in mhttpd_init -->
 
     <div id="mheader"></div>
     <div id="msidenav"></div>
     <div id="mmain">
       <!-- 1 -->
-
       <table>
         <tr>
           <td style="vertical-align: top; padding-left: 10px">
@@ -247,11 +243,27 @@
         </tr>
       </table>
 
+      <table class="mtable">
+        <tr>
+          <th colspan="6" class="mtableheader">MPMT id</th>
+        </tr>
+        <tr>
+          <td>
+            <select name="mpmt_id" id="mpmt_id" onchange="localStorage.mpmtid = this.options[selectedIndex].value; location.reload()">
+              <option value="01">01</option>
+              <option value="02">02</option>
+              <option value="03">03</option>
+              <option value="04">04</option>
+            </select>
+          </td>
+        </tr>
+      </table>
+
       <!-- mPMT Channels control -->
       <div id="channels"></div>
       <!-- mPMT Channels control -->
       <div class="row">
-        <div class="column">
+        <div id="mpmt_sensors" style="display: none" class="column">
           <!-- sensors table at left column -->
           <table class="mtable" style="width: 70%">
             <!-- Sensor Table -->
@@ -327,7 +339,7 @@
           </table>
           <!-- Sensor Table -->
         </div>
-        <div class="column">
+        <div id="mpmt_clk_control" style="display: none" class="column">
           <!-- clock table at center column -->
           <table class="mtable" style="width: 70%">
             <!-- Clock Table -->
@@ -447,7 +459,7 @@
           </table>
           <!-- Clock Table -->
         </div>
-        <div class="column">
+        <div id="mpmt_acq_control" style="display: none" class="column">
           <!-- acquisition table at left column -->
           <table class="mtable" style="width: 70%">
             <!-- Acquisition Table -->
@@ -477,11 +489,10 @@
               <td>
                 <div
                   id="adc_mask"
-                  name="modbvalue"
+                  class="modbvalue"
                   data-odb-editable="0"
-                  data-format="x5"
-                  onload="onchange()"
-                  onchange="adcmask_to_checkboxes()"
+                  data-format="%d"
+                  onload="adcmask_to_checkboxes()"
                 ></div>
               </td>
             </tr>
@@ -490,11 +501,10 @@
               <td>
                 <div
                   id="power_mask"
-                  name="modbvalue"
+                  class="modbvalue"
                   data-odb-editable="0"
-                  data-format="x5"
-                  onload="onchange()"
-                  onchange="powermask_to_checkboxes()"
+                  data-format="%d"
+                  onload="powermask_to_checkboxes()"
                 ></div>
               </td>
             </tr>

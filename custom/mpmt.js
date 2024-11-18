@@ -1,33 +1,49 @@
 let probe_in_progress = false;
 
-function check_fe_running(fename) {
+function check_fe_running(fename, mpmtid) {
   var path = "/System/Clients";
   mjsonrpc_db_get_value(path)
     .then(function (rpc) {
-      let hv_running = false;
+      let fe_running = false;
       if (rpc.result.status[0] == 1) {
         let clients = rpc.result.data[0];
         for (let key in clients) {
           if (key.endsWith("/name")) {
             continue;
           }
-
-          if (clients[key].name.startsWith(fename)) {
-            hv_running = true;
+          if (clients[key].name.startsWith(`${fename}${mpmtid}`)) {
+            fe_running = true;
           }
         }
       }
 
-      if (!hv_running) {
+      setTimeout(check_fe_running.bind(null, fename, mpmtid), 5000);
+
+      if (!fe_running) {
         document.getElementById(`${fename}_stopped`).style.display = "block";
+        if(fename.startsWith("snfe"))
+           document.getElementById("mpmt_sensors").style.display = 'none'
+        else if(fename.startsWith("hvfe")) {
+           document.getElementById("channels").style.display = 'none'
+        } else if(fename.startsWith("rcfe")) {
+           document.getElementById("mpmt_clk_control").style.display = 'none'
+           document.getElementById("mpmt_acq_control").style.display = 'none'
+        }
       } else {
         document.getElementById(`${fename}_stopped`).style.display = "none";
+        if(fename.startsWith("snfe"))
+           document.getElementById("mpmt_sensors").style.display = 'block'
+        else if(fename.startsWith("hvfe")) {
+           document.getElementById("channels").style.display = 'block'
+        } else if(fename.startsWith("rcfe")) {
+           document.getElementById("mpmt_clk_control").style.display = 'block'
+           document.getElementById("mpmt_acq_control").style.display = 'block'
+        }
       }
-      setTimeout(check_fe_running.bind(null, fename), 5000);
     })
     .catch(function (error) {
       mjsonrpc_error_alert(error);
-      setTimeout(check_fe_running.bind(null, fename), 5000);
+      setTimeout(check_fe_running.bind(null, fename, mpmtid), 5000);
     });
 }
 
@@ -66,9 +82,10 @@ function getOnlineModulesList() {
       .then(function (rpc) {
         let mlist = [];
         blist = rpc.result.data[0];
-        blist.map((el, i) => {
-          el ? mlist.push(i) : 0;
-        });
+        if (blist != null)
+           blist.map((el, i) => {
+             el ? mlist.push(i) : 0;
+           });
         resolve(mlist);
       })
       .catch(function (error) {
@@ -100,6 +117,7 @@ function getOC(value, ch) {
 }
 
 function HVProbe() {
+  //console.log('HV probe?')
   mpmtid = localStorage.mpmtid;
   if (authuser()) {
     (async () => {
@@ -189,11 +207,12 @@ function getHVAlarmAll(value) {
  */
 
 function adcmask_to_checkboxes() {
+  //console.log('adcmasktocheboxes')
   if (probe_in_progress) return;
   let mask = parseInt(document.getElementById("adc_mask").innerText);
   getOnlineModulesList().then((modules) => {
     modules.map((ch) => {
-      document.getElementById("adc" + ch).checked = mask & (1 << ch);
+     document.getElementById("adc" + ch).checked = mask & (1 << ch);
     });
   });
 }
@@ -206,14 +225,19 @@ function checkboxes_to_adcmask() {
     modules.map((ch) => {
       let el = document.getElementById("adc" + ch);
       if (el.checked) {
-        mask |= 1 << ch;
+        mask |= (1 << ch);
       }
     });
 
     // Avoid negative hex values in JS.
-    mask = mask >>> 0;
-
-    //mjsonrpc_db_set_value(`/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,mask).catch((error) => {mjsonrpc_error_alert(error);});
+    mask = mask >>> 0; 
+    //console.log('checkboxestoadcmask', mask)   
+    mjsonrpc_db_set_value(
+      `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
+      mask
+    ).catch((error) => {
+      mjsonrpc_error_alert(error);
+    });
   });
 }
 
@@ -223,7 +247,6 @@ function checkboxes_to_adcmask() {
 
 function check_poweroff(ch) {
   mpmtid = localStorage.mpmtid; 
-  // check power-off request
   cb = document.getElementById("pw" + ch);
   if (cb.checked == false) {
     mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status`])
@@ -264,7 +287,7 @@ function checkboxes_to_powermask() {
     modules.map((ch) => {
       let el = document.getElementById("pw" + ch);
       if (el.checked) {
-        mask |= 1 << ch;
+        mask |= (1 << ch);
       }
       handle_adc_checkbox(ch);
     });
@@ -272,7 +295,7 @@ function checkboxes_to_powermask() {
 
     // Avoid negative hex values in JS.
     mask = mask >>> 0;
-
+    //console.log('checkboxestopowermask', mask)
     mjsonrpc_db_set_value(
       `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
       mask
@@ -338,7 +361,6 @@ function EnHV() {
       modules.map((ch) => {
         mask += 2 ** ch;
       });
-      console.log(mask);
       mjsonrpc_db_set_value(
         `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
         mask
@@ -365,6 +387,7 @@ function SetTh() {
 }
 
 function EnableAll() {
+  //console.log('enable all?')
   mpmtid = localStorage.mpmtid;
   if (authuser()) {
     getOnlineModulesList().then((modules) => {
@@ -376,7 +399,7 @@ function EnableAll() {
         `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
         mask
       );
-      //mjsonrpc_db_set_value(`/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,mask);
+      mjsonrpc_db_set_value(`/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,mask);
     });
     showSuccess();
   }
@@ -404,6 +427,26 @@ function HVoff(index) {
     .catch(function (error) {
       mjsonrpc_error_alert(error);
     });
+}
+
+function HVonAll(){
+  if (authuser()){
+    getOnlineModulesList().then((modules) => {
+     modules.forEach(function(value, i) {
+        HVon(value);
+     });
+   });
+  }
+}
+
+function HVoffAll(){
+  if (authuser()){
+    getOnlineModulesList().then((modules) => {
+     modules.forEach(function(value, i) {
+        HVoff(value);
+     });
+   });
+  }
 }
 
 function HVReset(index) {
@@ -500,6 +543,6 @@ function handle_adc_checkbox(ch) {
     let adc_input = document.getElementById(`adc${ch}`);
     adc_input.checked = false;
     let elems = document.getElementsByClassName(`hidewhenoff${ch}`);
-    for (let i = 0; i < elems.length; i++) elems[i].style.display = "";
+    for (let i = 0; i < elems.length; i++) elems[i].style.display = "None";
   }
 }
