@@ -125,19 +125,17 @@ class RunControl(midas.frontend.EquipmentBase):
       event.create_bank("RCCH", midas.TID_INT, data)
 
       data = []
-      data.append(int(self.readRegister(3)))          # clock diagnostic bits
+      #data.append(int(self.readRegister(3)))          # clock diagnostic bits
       data.append(int(self.settings['PPS counter']))
       data.append(int(self.settings['Unix timestamp']))
       data.append(int(self.settings['Enable PPS event']))
       data.append(int(self.settings['Enable ADC calibration']))
-      data.append(int(self.settings['Peak delay']))
-      data.append(int(self.settings['Dark delay']))
       data.append(int(self.settings['Pulser period']))
       data.append(int(self.settings['Dead time']))
       
       event.create_bank("RCGL", midas.TID_INT, data)
 
-      return event
+      return event   
 
    #
    # watch callback for board startup mode
