@@ -62,7 +62,12 @@
 
       function init() {
 
-        mpmtid = document.getElementById("mpmt_id").options[document.getElementById("mpmt_id").selectedIndex].value
+        mpmtid = localStorage.mpmtid
+        if (mpmtid == undefined)
+          mpmtid = "01" 
+        document.getElementById("mpmt_id").value = localStorage.mpmtid
+
+        console.log(mpmtid)
 
         check_fe_running("hvfe", mpmtid)
         check_fe_running("rcfe", mpmtid)
