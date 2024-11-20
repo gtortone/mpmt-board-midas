@@ -171,6 +171,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
       #hvPower = self.client.odb_get(f'{self.odb_power_enable}')
       hvPower = self.readRegister(1)
       for addr in range(1,20):
+         self.client.communicate(100)
          # check if HV module is probed and powered 
          if hvOnline[addr-1] and (hvPower & (1<<(addr-1)) > 0):
             comerr = False
@@ -181,6 +182,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
                if self.settings["Report Modbus errors"] == True:
                   self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
             
+            self.client.communicate(100)
             settings["Status"][addr-1] = monData['status'] if not comerr else self.settings["Status"][addr-1]
             settings["V"][addr-1] = monData['V'] if not comerr else self.settings["V"][addr-1]
             settings["I"][addr-1] = monData['I'] if not comerr else self.settings["I"][addr-1]
@@ -195,6 +197,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
                settings["Limit T"][addr-1] = monData['limitT'] if not comerr else self.settings["Limit T"][addr-1]
                settings["Trip time"][addr-1] = monData['limitTRIP'] if not comerr else self.settings["Trip time"][addr-1]
                settings["Trigger threshold"][addr-1] = monData['threshold'] if not comerr else self.settings["Trigger threshold"][addr-1]
+            self.client.communicate(100)
 
       self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
 
@@ -238,7 +241,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
       event.header.trigger_mask = midas.frontend.frontend_index
 
       hvOnline = self.settings['Online']
-      #hvPower = self.client.odb_get(f'{self.odb_power_enable}')
       hvPower = self.readRegister(1)
       for idx in range(0,19):
          # check if HV module is probed and powered
