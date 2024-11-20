@@ -10,6 +10,7 @@ import midas.event
 sys.path.append('/opt/mpmt-board-cli/highvoltage')
 from hvmodbus import HVModbus
 import conf
+import threading
 
 class HighVoltage(midas.frontend.EquipmentBase):
 
@@ -61,6 +62,13 @@ class HighVoltage(midas.frontend.EquipmentBase):
 
       # main hv modbus object
       self.hv = HVModbus(self.param)
+
+      # threads
+      self.mutex = threading.Lock()
+      # monitor thread to run updateODB()
+      self.mthread = threading.Thread(target=self.monitor, args=(self,))
+      # communication thread to spin the wheel of client.communicate()
+      self.cthread = threading.Thread(target=self.communicate, args=(self,))
  
       # set online HV modules
       self.probe_in_progress = False
@@ -88,6 +96,9 @@ class HighVoltage(midas.frontend.EquipmentBase):
 
       self.set_status("Initialized")
 
+      self.mthread.start()
+      self.cthread.start()
+
    def readRegister(self, offset):
       return self.regs[offset]
 
@@ -104,6 +115,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.client.odb_set(f'{self.odb_settings_dir}/Probe modules', False)
 
    def watchPowerCommand(self, client, path, idx, cmd):
+      #print(path, idx, cmd)
       if self.probe_in_progress:
          return
       cmd = str.lower(cmd)
@@ -112,17 +124,23 @@ class HighVoltage(midas.frontend.EquipmentBase):
          return
       if cmd == 'on':
          try:
+            self.mutex.acquire()
             self.hv.powerOn(addr)
+            self.mutex.release()
          except:
             self.client.msg(f'Error sending power on to HV module {addr}', is_error=True)
       elif cmd == 'off':
          try:
+            self.mutex.acquire()
             self.hv.powerOff(addr)
+            self.mutex.release()
          except:
             self.client.msg(f'Error sending power off to HV module {addr}', is_error=True)
       elif cmd == 'reset':
          try:
+            self.mutex.acquire()
             self.hv.reset(addr)
+            self.mutex.release()
          except:
             self.client.msg(f'Error sending reset to HV module {addr}', is_error=True)
       else: self.client.msg(f"Unknown command {cmd} for HV module {addr}", is_error=True)
@@ -131,6 +149,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.client.odb_set(f'{self.odb_settings_dir}/Power command[{idx}]', 'none')
 
    def probeHV(self):
+      self.mutex.acquire()
       self.probe_in_progress = True
 
       # power on all HV modules and turn off ADC enable to prevent bootloader
@@ -158,6 +177,17 @@ class HighVoltage(midas.frontend.EquipmentBase):
          time.sleep(0.1)
 
       self.probe_in_progress = False
+      self.mutex.release()
+
+   def monitor(self, this):
+      while True:
+         this.updateODB()
+         time.sleep(2)
+
+   def communicate(self, this):
+      while True:
+         this.client.communicate(10)
+
    #
    # update ODB keys from HV Modbus registers
    #
@@ -168,21 +198,23 @@ class HighVoltage(midas.frontend.EquipmentBase):
       if update_rw_settings is True:    # update read-only and read-write settings
         settings.update(copy.deepcopy(conf.scratch_rw_settings))
       hvOnline = self.settings['Online']
-      #hvPower = self.client.odb_get(f'{self.odb_power_enable}')
       hvPower = self.readRegister(1)
       for addr in range(1,20):
-         self.client.communicate(100)
          # check if HV module is probed and powered 
          if hvOnline[addr-1] and (hvPower & (1<<(addr-1)) > 0):
             comerr = False
+            self.mutex.acquire()
             try:
                monData = self.hv.readMonRegisters(addr)
             except:
                comerr = True
                if self.settings["Report Modbus errors"] == True:
                   self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
+            self.mutex.release()
             
-            self.client.communicate(100)
+            if monData is None:  # skip this update
+               continue
+         
             settings["Status"][addr-1] = monData['status'] if not comerr else self.settings["Status"][addr-1]
             settings["V"][addr-1] = monData['V'] if not comerr else self.settings["V"][addr-1]
             settings["I"][addr-1] = monData['I'] if not comerr else self.settings["I"][addr-1]
@@ -197,7 +229,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
                settings["Limit T"][addr-1] = monData['limitT'] if not comerr else self.settings["Limit T"][addr-1]
                settings["Trip time"][addr-1] = monData['limitTRIP'] if not comerr else self.settings["Trip time"][addr-1]
                settings["Trigger threshold"][addr-1] = monData['threshold'] if not comerr else self.settings["Trigger threshold"][addr-1]
-            self.client.communicate(100)
 
       self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
 
@@ -228,15 +259,16 @@ class HighVoltage(midas.frontend.EquipmentBase):
             return
          # module is online and register is read-write, update register value
          #print(f'{path} {idx} {new_value}')
+         self.mutex.acquire()
          try:
-            self.regMap[path]["func"](new_value, addr)
-         except:
+            self.regMap[path]["func"](int(new_value), addr)
+         except Exception as e:
             self.client.msg(f"Error writing to HV module {addr}", is_error=True)
             # request update of all registers to prevent stale values in ODB
-            self.updateODB(update_rw_settings=True)
+            # self.updateODB(update_rw_settings=True)
+         self.mutex.release()
 
    def readout_func(self):
-      self.updateODB()
       event = midas.event.Event()
       event.header.trigger_mask = midas.frontend.frontend_index
 
