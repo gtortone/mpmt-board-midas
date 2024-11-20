@@ -67,7 +67,7 @@ function getOnlineModulesArray() {
   return new Promise(function (resolve, reject) {
     mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online`])
       .then(function (rpc) {
-        resolve(rpc.result.data[0]);
+        resolve(parseInt(rpc.result.data[0]));
       })
       .catch(function (error) {
         mjsonrpc_error_alert(error);
@@ -117,7 +117,6 @@ function getOC(value, ch) {
 }
 
 function HVProbe() {
-  //console.log('HV probe?')
   mpmtid = localStorage.mpmtid;
   if (authuser()) {
     (async () => {
@@ -207,12 +206,20 @@ function getHVAlarmAll(value) {
  */
 
 function adcmask_to_checkboxes() {
-  //console.log('adcmasktocheboxes')
   if (probe_in_progress) return;
-  let mask = parseInt(document.getElementById("adc_mask").innerText);
-  getOnlineModulesList().then((modules) => {
-    modules.map((ch) => {
-     document.getElementById("adc" + ch).checked = mask & (1 << ch);
+  mjsonrpc_db_get_values([
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
+  ]).then(function (rpc) {
+      mask = parseInt(rpc.result.data[0]);
+      getOnlineModulesList().then((modules) => {
+         modules.map((ch) => {
+            if ((mask & (1 << ch)) > 0)
+               document.getElementById("adc" + ch).checked = true;
+            else document.getElementById("adc" + ch).checked = false;
+         });
+      })
+    .catch(function (error) {
+      mjsonrpc_error_alert(error);
     });
   });
 }
@@ -231,7 +238,6 @@ function checkboxes_to_adcmask() {
 
     // Avoid negative hex values in JS.
     mask = mask >>> 0; 
-    //console.log('checkboxestoadcmask', mask)   
     mjsonrpc_db_set_value(
       `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
       mask
@@ -269,13 +275,21 @@ function check_poweroff(ch) {
 
 function powermask_to_checkboxes() {
   if (probe_in_progress) return;
-  let mask = parseInt(document.getElementById("power_mask").innerText);
-  getOnlineModulesList().then((modules) => {
-    modules.map((ch) => {
-      document.getElementById("pw" + ch).checked = mask & (1 << ch);
-      handle_adc_checkbox(ch);
+  mjsonrpc_db_get_values([
+    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
+  ]).then(function (rpc) {
+      mask = parseInt(rpc.result.data[0]);
+      getOnlineModulesList().then((modules) => {
+         modules.map((ch) => {
+            document.getElementById("pw" + ch).checked = mask & (1 << ch);
+            handle_adc_checkbox(ch);
+         });
+         checkboxes_to_adcmask();
+      })
+    .catch(function (error) {
+      mjsonrpc_error_alert(error);
     });
-    checkboxes_to_adcmask();
+
   });
 }
 
@@ -295,7 +309,6 @@ function checkboxes_to_powermask() {
 
     // Avoid negative hex values in JS.
     mask = mask >>> 0;
-    //console.log('checkboxestopowermask', mask)
     mjsonrpc_db_set_value(
       `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
       mask
@@ -364,7 +377,9 @@ function EnHV() {
       mjsonrpc_db_set_value(
         `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
         mask
-      );
+      ).then( function(rpc) {
+         powermask_to_checkboxes();
+      });
     });
     showSuccess();
   }
@@ -387,7 +402,6 @@ function SetTh() {
 }
 
 function EnableAll() {
-  //console.log('enable all?')
   mpmtid = localStorage.mpmtid;
   if (authuser()) {
     getOnlineModulesList().then((modules) => {
@@ -396,10 +410,16 @@ function EnableAll() {
         mask += 2 ** ch;
       });
       mjsonrpc_db_set_value(
+         `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
+         mask).then( function(rpc) {
+            adcmask_to_checkboxes()
+      });   
+      mjsonrpc_db_set_value(
         `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
         mask
-      );
-      mjsonrpc_db_set_value(`/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,mask);
+      ).then( function(rpc) {
+         powermask_to_checkboxes();
+      });
     });
     showSuccess();
   }
@@ -533,8 +553,23 @@ function handle_adc_checkbox(ch) {
     /* user power on channel:
      * - show channel metrics
      */
-    let elems = document.getElementsByClassName(`hidewhenoff${ch}`);
-    for (let i = 0; i < elems.length; i++) elems[i].style.display = "";
+    document.getElementById(`cell${ch}-1`).style.display = "block";
+    document.getElementById(`cell${ch}-2`).style.display = "block";
+    document.getElementById(`cell${ch}-3`).style.display = "block";
+    document.getElementById(`cell${ch}-4`).style.display = "block";
+    document.getElementById(`cell${ch}-5`).style.display = "block";
+    document.getElementById(`cell${ch}-6`).style.display = "block";
+    document.getElementById(`cell${ch}-7`).style.display = "block";
+    document.getElementById(`cell${ch}-8`).style.display = "block";
+    document.getElementById(`cell${ch}-9`).style.display = "block";
+    document.getElementById(`cell${ch}-10`).style.display = "block";
+    document.getElementById(`cell${ch}-11`).style.display = "block";
+    document.getElementById(`cell${ch}-12`).style.display = "block";
+    document.getElementById(`cell${ch}-13`).style.display = "block";
+    document.getElementById(`cell${ch}-14`).style.display = "block";
+    document.getElementById(`cell${ch}-15`).style.display = "block";
+    document.getElementById(`hvstatus${ch}`).style.display = "block";
+    document.getElementById(`hvalarm${ch}`).style.display = "block";
   } else {
     /* user power off channel :
      * - disable ADC sampling
@@ -542,7 +577,22 @@ function handle_adc_checkbox(ch) {
      */
     let adc_input = document.getElementById(`adc${ch}`);
     adc_input.checked = false;
-    let elems = document.getElementsByClassName(`hidewhenoff${ch}`);
-    for (let i = 0; i < elems.length; i++) elems[i].style.display = "None";
+    document.getElementById(`cell${ch}-1`).style.display = "none";
+    document.getElementById(`cell${ch}-2`).style.display = "none";
+    document.getElementById(`cell${ch}-3`).style.display = "none";
+    document.getElementById(`cell${ch}-4`).style.display = "none";
+    document.getElementById(`cell${ch}-5`).style.display = "none";
+    document.getElementById(`cell${ch}-6`).style.display = "none";
+    document.getElementById(`cell${ch}-7`).style.display = "none";
+    document.getElementById(`cell${ch}-8`).style.display = "none";
+    document.getElementById(`cell${ch}-9`).style.display = "none";
+    document.getElementById(`cell${ch}-10`).style.display = "none";
+    document.getElementById(`cell${ch}-11`).style.display = "none";
+    document.getElementById(`cell${ch}-12`).style.display = "none";
+    document.getElementById(`cell${ch}-13`).style.display = "none";
+    document.getElementById(`cell${ch}-14`).style.display = "none";
+    document.getElementById(`cell${ch}-15`).style.display = "none";
+    document.getElementById(`hvstatus${ch}`).style.display = "none";
+    document.getElementById(`hvalarm${ch}`).style.display = "none";
   }
 }
