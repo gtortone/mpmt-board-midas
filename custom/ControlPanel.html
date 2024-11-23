@@ -8,7 +8,7 @@
     <script src="midas.js"></script>
     <script src="mhttpd.js"></script>
     <script src="toastify.js"></script>
-    <script src="mpmt.js"></script>
+    <script src="mpmt-test.js"></script>
     <title>mPMT Control Panel</title>
 
     <style>
@@ -76,23 +76,20 @@
         html += '<tr><th colspan="19" class="mtableheader">mPMT Channels control</th></tr>';
         html += "<tr>";
         html += '<td colspan="19" style="text-align: center">';
-        html += '<button class="mbutton" onclick="HVProbe()">Probe HV modules</button>';
-        html += '<button class="mbutton" onclick="EnHV()">Power all</button>';
-        html += '<button class="mbutton" onclick="EnableAll()">Power and Enable all</button>';
+        html += '<button class="mbutton" onclick="set_enable_all(true)">Power all</button>';
+        html += '<button class="mbutton" onclick="set_enable_and_adc_all(true)">Power and Enable all</button>';
         html += '<button class="mbutton" onclick="SetHV()">Set HV to all</button>';
         html += '<button class="mbutton" onclick="SetTh()">Set Threshold to all</button>';
         html += "</td></tr>";
-        html += '<tr id="probing_banner" style="display: none;"><td colspan="19" style="background-color: darkred; font-weight: bold; color: yellow; text-align: center;">HV probing in progress</td></tr>'
-        html += '<div id="probing" style="display: none;" class="modbvalue" colspan="19" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules" onchange="handle_banner_probe()" onload="onchange()"></div>';
         html += "<tr>";
         html += "<th> CH# </th>";
-        html += "<th>Pwr_En</th>";
+        html += "<th>CH En</th>";
         html += "<th>Rate (Hz)</th>";
         html += "<th>OC</th>";
-        html += "<th>ADC_En</th>";
-        html += "<th>HV_power</th>";
-        html += "<th>HV_set (V)</th>";
-        html += "<th>HV Mon (V)</th>";
+        html += "<th>ADC En</th>";
+        html += "<th>HV power</th>";
+        html += "<th>HV set (V)</th>";
+        html += "<th>HV mon (V)</th>";
         html += "<th>Threshold (mV)</th>";
         html += "<th>Anode I</th>";
         html += "<th>T (C)</th>";
@@ -106,67 +103,47 @@
         html += "<th>Alarm</th>";
         html += "</tr>";
 
-        mjsonrpc_db_get_values([
-              `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
-              `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
-        ]).then(function (rpc) {
-           pwmask = parseInt(rpc.result.data[0])
-           adcmask = parseInt(rpc.result.data[1])
-           getOnlineModulesList().then(function (modules) {
-               modules.map(function (ch) {
-                  // build channel table
-                  chpw = ((pwmask & (1 << ch)) > 0)
-                  chadc = ((adcmask & (1 << ch)) > 0)
-                  //console.log(ch, chpw, chadc)
-                  style = "";
-                  html += `<tr>`;
-                  html += `<td class="modbbox ledbig" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online[${ch}]" data-color="lightgreen" data-background-color="red">${ch+1}</td>`;
-                  if(chpw) {
-                     html += `<td style="text-align: center"><input id=pw${ch} type="checkbox" onclick="checkboxes_to_powermask()" checked></td>`
-                     style = "display: block"
-                  } else { 
-                     html += `<td style="text-align: center"><input id=pw${ch} type="checkbox" onclick="checkboxes_to_powermask()"></td>`;
-                     style = "display: none"
-                  }
-                  html += `<td><div id="cell${ch}-1" style="${style}" name="modbvalue" data-odb-path="Equipment/MPMT-RunControl${mpmtid}/Settings/Channel ratemeter[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-2" style="${style}" class="modbbox ledbig" data-odb-path="Equipment/MPMT-RunControl${mpmtid}/Settings/Overcurrent" data-color="lightgreen" data-background-color="red" data-formula="getOC(x, ${ch})"></div></td>`;
-                  if(chadc)
-                     html += `<td style="text-align: center"><div id="cell${ch}-3" style="${style}"><input id=adc${ch} type="checkbox" onclick="checkboxes_to_adcmask()" checked></div></td>`;
-                  else html += `<td style="text-align: center"><div id="cell${ch}-3" style="${style}"><input id=adc${ch} type="checkbox" onclick="checkboxes_to_adcmask()"></div></td>`;
-                  html += `
-                     <td>
-                        <div id="cell${ch}-4" style="${style}">
-                        <button class="smlabel" onclick='HVon(${ch})'>ON</button>
-                        <button class="smlabel" onclick='HVoff(${ch})'>OFF</button>
-                        <button class="smlabel" onclick='HVReset(${ch})'>RESET</button>
-                        </div>
-                     </td>`;
-                  html += `<td><div id="cell${ch}-5" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="1500" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-6" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/V[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-7" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-8" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/I[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-9" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/T[${ch}]"></div></td>`;
-                  html += `<td style="text-align: center"><div id="hvstatus${ch}"></div></td>`;
-                  html += `<td><div id="cell${ch}-10" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate up[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-11" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate down[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-12" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit V[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-13" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit I[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-14" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit T[${ch}]"></div></td>`;
-                  html += `<td><div id="cell${ch}-15" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trip time[${ch}]"></div></td>`;
-                  html += `<td style="text-align: center"><div id="hvalarm${ch}"></div></td>`;
-                  html += "</tr>";
+         channels = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+         channels.map(function (ch) {
+            // build channel table
+            style = "";
+            html += `<tr id="channel${ch}">`;
+            html += `<td class="modbbox ledbig" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online[${ch}]" data-color="lightgreen" data-background-color="red">${ch+1}</td>`;
+            html += `<td style="text-align: center"><button id="pwrbtn${ch}" onclick="toggle_enable_channel(${ch+1})"></button><input id="pwr${ch}" type="checkbox" onclick="return false;"></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Channel ratemeter[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" class="modbbox ledbig" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Overcurrent" data-color="lightgreen" data-background-color="red" data-formula="getOC(x, ${ch})"></div></td>`;
+            html += `<td><div class="param${ch}" style="text-align: center"><button onclick="toggle_adc_channel(${ch+1})">T</button><input id="adc${ch}" type="checkbox" onclick="return false;"></div></td>`;
+            html += `
+               <td>
+                  <div class="param${ch}" style="${style}">
+                  <button class="smlabel" onclick='call_cmd(${ch+1}, "on")'>ON</button>
+                  <button class="smlabel" onclick='call_cmd(${ch+1}, "off")'>OFF</button>
+                  <button class="smlabel" onclick='call_cmd(${ch+1}, "reset")'>RESET</button>
+                  </div>
+               </td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="1500" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/V[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/I[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/T[${ch}]"></div></td>`;
+            html += `<td style="text-align: center"><div class="param${ch}" id="hvstatus${ch}"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate up[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate down[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit V[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit I[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit T[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trip time[${ch}]"></div></td>`;
+            html += `<td style="text-align: center"><div class="param${ch}" id="hvalarm${ch}"></div></td>`;
+            html += "</tr>";
 
-                  html += `<div style="display: none" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status" onchange="getHVStatusAll(this.value)" onload="onchange()"></div>`;
-                  html += `<div style="display: none" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Alarm" onchange="getHVAlarmAll(this.value)" onload="onchange()"></div>`;
+            html += `<div style="display: none" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status" onchange="getHVStatusAll(this.value)" onload="onchange()"></div>`;
+            html += `<div style="display: none" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Alarm" onchange="getHVAlarmAll(this.value)" onload="onchange()"></div>`;
 
-                  // end build channel table
-               });
-               document.getElementById("channels").innerHTML = html;
-               mhttpd_init("MPMT control panel", 2000);
-           });
-        }).catch(function (error) {
-            mjsonrpc_error_alert(error);
-        });
+            // end build channel table
+         });   // end modules.map()
+         document.getElementById("channels").innerHTML = html;
+         refresh_channels_status(undefined);
+         mhttpd_init("MPMT control panel", 2000);
 
         document.getElementById("id1").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/On-board temperature`)
         document.getElementById("id2").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/External temperature`)
@@ -176,26 +153,27 @@
         document.getElementById("id6").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/Voltage 3.3V`)
         document.getElementById("id7").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/Power POE channel A`)
         document.getElementById("id8").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/Power POE channel B`)
-        document.getElementById("id9").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/PPS counter`)
-        document.getElementById("id10").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock A OK`)
-        document.getElementById("id11").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock B OK`)
-        document.getElementById("id12").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Clock int-ext mux status`)
-        document.getElementById("id13").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/PLL Locked`)
-        document.getElementById("id14").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/PPS OK`)
-        document.getElementById("id15").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/PPS OK`)
-        document.getElementById("id16").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Unix timestamp aligned`)
-        document.getElementById("id17").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable PPS event`)
-        document.getElementById("id18").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC calibration`)
-        document.getElementById("adc_mask").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`)
-        document.getElementById("power_mask").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`)
-        document.getElementById("id21").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Pulser period`)
-        document.getElementById("id24").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Dead time`)
+        document.getElementById("id9").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/PPS counter`)
+        document.getElementById("id10").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Clock A OK`)
+        document.getElementById("id11").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Clock B OK`)
+        document.getElementById("id12").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Clock int-ext mux status`)
+        document.getElementById("id13").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/PLL Locked`)
+        document.getElementById("id14").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/PPS OK`)
+        document.getElementById("id15").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/PPS OK`)
+        document.getElementById("id16").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Unix timestamp aligned`)
+        document.getElementById("id17").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Enable PPS event`)
+        document.getElementById("id18").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Enable ADC calibration`)
+        document.getElementById("adc_mask").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Enable ADC sampling`)
+        document.getElementById("power_mask").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Power enable`)
+        document.getElementById("id21").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Pulser period`)
+        document.getElementById("id24").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Dead time`)
 
      } // end init
     </script>
   </head>
 
-  <body class="mcss" onload="init()">
+  <!-- <body class="mcss" onload="init()"> -->
+  <body class="mcss" onload="init()"> 
     <!-- header and side navigation will be filled in mhttpd_init -->
 
     <div id="mheader"></div>
