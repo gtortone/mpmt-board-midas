@@ -1,3 +1,10 @@
+let online_channels = new Array(19).fill(false)
+let power_channels = new Array(19).fill(false)
+let adc_channels = new Array(19).fill(false)
+
+let hvfe_running = false
+let rcfe_running = false
+let snfe_running = false
 
 function check_fe_running(fename, mpmtid) {
   var path = "/System/Clients";
@@ -18,21 +25,27 @@ function check_fe_running(fename, mpmtid) {
 
       if (!fe_running) {
         document.getElementById(`${fename}_stopped`).style.display = "block";
-        if(fename.startsWith("snfe"))
+        if(fename.startsWith("snfe")) {
+           snfe_running = false
            document.getElementById("mpmt_sensors").style.display = 'none'
-        else if(fename.startsWith("hvfe")) {
+        } else if(fename.startsWith("hvfe")) {
+           hvfe_running = false
            document.getElementById("channels").style.display = 'none'
         } else if(fename.startsWith("rcfe")) {
+           rcfe_running = false
            document.getElementById("mpmt_clk_control").style.display = 'none'
            document.getElementById("mpmt_acq_control").style.display = 'none'
         }
       } else {
         document.getElementById(`${fename}_stopped`).style.display = "none";
-        if(fename.startsWith("snfe"))
+        if(fename.startsWith("snfe")) {
+           snfe_running = true      
            document.getElementById("mpmt_sensors").style.display = 'block'
-        else if(fename.startsWith("hvfe")) {
+        } else if(fename.startsWith("hvfe")) {
+           hvfe_running = true
            document.getElementById("channels").style.display = 'block'
         } else if(fename.startsWith("rcfe")) {
+           rcfe_running = true
            document.getElementById("mpmt_clk_control").style.display = 'block'
            document.getElementById("mpmt_acq_control").style.display = 'block'
         }
@@ -43,10 +56,6 @@ function check_fe_running(fename, mpmtid) {
       setTimeout(check_fe_running.bind(null, fename, mpmtid), 5000);
     });
 }
-
-let online_channels = new Array(19).fill(false)
-let power_channels = new Array(19).fill(false)
-let adc_channels = new Array(19).fill(false)
 
 function refresh_channels_status(arg) {
    
@@ -216,11 +225,8 @@ function parse_rpc_response(rpc_result) {
 }
 
 function alert_rpc_error(status, reply) {
-  if (status == 103) {
-    dlgAlert("The hvfe client must be running for this functionality to work."); 
-  } else {
-    dlgAlert("Failed to perform action!<div style='text-align:left'><br>Status code: " + status + "<br>Message: " + reply + "</div>"); 
-  }  
+   if(hvfe_running)
+      dlgAlert("Failed to perform action!<div style='text-align:left'><br>Status code: " + status + "<br>Message: " + reply + "</div>"); 
 }
 
 function toggle_enable_channel(ch) {
