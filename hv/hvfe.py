@@ -3,6 +3,7 @@
 import sys
 import copy
 import time
+import json
 import mmap
 import midas
 import midas.frontend
@@ -63,6 +64,14 @@ class HighVoltage(midas.frontend.EquipmentBase):
       # main hv modbus object
       self.hv = HVModbus(self.param)
 
+      # HV status
+      self.online_channels = [False] * 19
+      self.prev_online_channels = [False] * 19
+      self.enabled_channels = [False] * 19
+      self.adc_channels = [False] * 19
+
+      self.probe_mutex = threading.Lock()
+
       # threads
       self.mutex = threading.Lock()
       # monitor thread to run updateODB()
@@ -71,9 +80,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.cthread = threading.Thread(target=self.communicate, args=(self,))
  
       # set online HV modules
-      self.probe_in_progress = False
-      self.probeHV()
-
+      self.refresh_online_channels()
+      
       # initialize registers map
       conf.configRegisters(self.odb_settings_dir)
       self.regMap = conf.registers
@@ -88,10 +96,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.regMap[f'{self.odb_settings_dir}/Trip time']["func"] = self.hv.setLimitTriptime
       self.regMap[f'{self.odb_settings_dir}/Trigger threshold']["func"] = self.hv.setThreshold
 
-      # initialize ODB watchers
-      client.odb_watch(f'{self.odb_settings_dir}/Power command', self.watchPowerCommand, pass_changed_value_only=True)
-      client.odb_watch(f'{self.odb_settings_dir}/Probe modules', self.watchProbeCommand, pass_changed_value_only=True)
-
       self.updateODB(update_rw_settings=True)
 
       self.set_status("Initialized")
@@ -99,88 +103,36 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.mthread.start()
       self.cthread.start()
 
+      # Register our function.
+      client.register_jrpc_callback(self.rpc_handler, True)
+
    def readRegister(self, offset):
       return self.regs[offset]
 
    def writeRegister(self, offset, value):
       self.regs[offset] = value
 
-   def watchProbeCommand(self, client, path, idx, value):
-      if self.probe_in_progress:
-         return
-      if value == True:
-         self.client.msg(f'HV channel probing started')
-         self.probeHV()
-         self.client.msg(f'HV channel probing finished')
-      self.client.odb_set(f'{self.odb_settings_dir}/Probe modules', False)
-
-   def watchPowerCommand(self, client, path, idx, cmd):
-      #print(path, idx, cmd)
-      if self.probe_in_progress:
-         return
-      cmd = str.lower(cmd)
-      addr = idx+1
-      if cmd == 'none' or idx == -1:
-         return
-      if cmd == 'on':
-         try:
-            self.mutex.acquire()
-            self.hv.powerOn(addr)
-            self.mutex.release()
-         except:
-            self.client.msg(f'Error sending power on to HV module {addr}', is_error=True)
-      elif cmd == 'off':
-         try:
-            self.mutex.acquire()
-            self.hv.powerOff(addr)
-            self.mutex.release()
-         except:
-            self.client.msg(f'Error sending power off to HV module {addr}', is_error=True)
-      elif cmd == 'reset':
-         try:
-            self.mutex.acquire()
-            self.hv.reset(addr)
-            self.mutex.release()
-         except:
-            self.client.msg(f'Error sending reset to HV module {addr}', is_error=True)
-      else: self.client.msg(f"Unknown command {cmd} for HV module {addr}", is_error=True)
-
-      # reset power command
-      self.client.odb_set(f'{self.odb_settings_dir}/Power command[{idx}]', 'none')
-
-   def probeHV(self):
-      self.mutex.acquire()
-      self.probe_in_progress = True
-
-      # power on all HV modules and turn off ADC enable to prevent bootloader
-      self.writeRegister(0, 0)
-      value = 1
-      for i in range(0,19):
-         self.writeRegister(1, value)
-         value = value | (value << 1)
-         time.sleep(0.1)
-
-      l = [False] * 19
-      mask = 0
+   def refresh_online_channels(self):
+      hv_adc_channels = self.readRegister(0)
+      hv_enabled_channels = self.readRegister(1)
       for addr in range(1,20):
-         found = self.hv.probe(addr)
-         if found:
-            l[addr-1] = True
-            mask += 2 ** (addr-1)
-      self.client.odb_set(f'{self.odb_settings_dir}/Online', l)
-
-      # apply online mask to Power Enable register
-      value = 1
-      for i in range(0,19):
-         self.writeRegister(1, mask & value)
-         value = value | (value << 1)
-         time.sleep(0.1)
-
-      self.probe_in_progress = False
-      self.mutex.release()
+         adc = (hv_adc_channels & (1<<(addr-1)) > 0)
+         status = (hv_enabled_channels & (1<<(addr-1)) > 0)
+         self.adc_channels[addr-1] = adc
+         self.enabled_channels[addr-1] = status
+         if status:
+            if(self.hv.probe(addr)):
+               self.online_channels[addr-1] = True
+            else:
+               self.online_channels[addr-1] = False 
+         else:
+            self.online_channels[addr-1] = False
+      # copy online channels to ODB
+      self.client.odb_set(f'{self.odb_settings_dir}/Online', self.online_channels)
 
    def monitor(self, this):
       while True:
+         self.refresh_online_channels()
          this.updateODB()
          time.sleep(2)
 
@@ -192,83 +144,103 @@ class HighVoltage(midas.frontend.EquipmentBase):
    # update ODB keys from HV Modbus registers
    #
    def updateODB(self, update_rw_settings=False):
-      if self.probe_in_progress:
-         return
       settings = copy.deepcopy(conf.scratch_ro_settings)
       if update_rw_settings is True:    # update read-only and read-write settings
-        settings.update(copy.deepcopy(conf.scratch_rw_settings))
-      hvOnline = self.settings['Online']
-      hvPower = self.readRegister(1)
+         settings.update(copy.deepcopy(conf.scratch_rw_settings))
+
       for addr in range(1,20):
-         # check if HV module is probed and powered 
-         if hvOnline[addr-1] and (hvPower & (1<<(addr-1)) > 0):
+         # check if HV module is connected and powered
+         if self.online_channels[addr-1]:
             comerr = False
-            self.mutex.acquire()
+            hvmon = None
+            if self.param.mode == "tcp":
+               hvmon = HVModbus(self.param)
+            else:
+               hvmon = self.hv
+
+            if self.param.mode == "rtu":
+               self.mutex.acquire()
+
             try:
-               monData = self.hv.readMonRegisters(addr)
+               monData = hvmon.readMonRegisters(addr)
             except:
                comerr = True
                if self.settings["Report Modbus errors"] == True:
                   self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
-            self.mutex.release()
-            
-            if monData is None:  # skip this update
-               continue
-         
-            settings["Status"][addr-1] = monData['status'] if not comerr else self.settings["Status"][addr-1]
-            settings["V"][addr-1] = monData['V'] if not comerr else self.settings["V"][addr-1]
-            settings["I"][addr-1] = monData['I'] if not comerr else self.settings["I"][addr-1]
-            settings["T"][addr-1] = monData['T'] if not comerr else self.settings["T"][addr-1]
-            settings["Alarm"][addr-1] = monData['alarm'] if not comerr else self.settings["Alarm"][addr-1]
-            if update_rw_settings is True: # include read-write settings also
-               settings["Vset"][addr-1] = monData['Vset'] if not comerr else self.settings["Vset"][addr-1]
-               settings["Rate up"][addr-1] = monData['rateUP'] if not comerr else self.settings["Rate up"][addr-1]
-               settings["Rate down"][addr-1] = monData['rateDN'] if not comerr else self.settings["Rate down"][addr-1]
-               settings["Limit V"][addr-1] = monData['limitV'] if not comerr else self.settings["Limit V"][addr-1]
-               settings["Limit I"][addr-1] = monData['limitI'] if not comerr else self.settings["Limit I"][addr-1]
-               settings["Limit T"][addr-1] = monData['limitT'] if not comerr else self.settings["Limit T"][addr-1]
-               settings["Trip time"][addr-1] = monData['limitTRIP'] if not comerr else self.settings["Trip time"][addr-1]
-               settings["Trigger threshold"][addr-1] = monData['threshold'] if not comerr else self.settings["Trigger threshold"][addr-1]
 
+            if self.param.mode == "rtu":
+               self.mutex.release()
+
+            if monData is None or comerr == True:  # skip this update
+               continue
+
+            settings["Status"][addr-1] = monData['status']
+            settings["V"][addr-1] = monData['V']
+            settings["I"][addr-1] = monData['I']
+            settings["T"][addr-1] = monData['T']
+            settings["Alarm"][addr-1] = monData['alarm']
+            new_channel = self.online_channels[addr-1] == True and self.prev_online_channels[addr-1] == False
+            if update_rw_settings: # include read-write settings also
+               settings["Vset"][addr-1] = monData['Vset']
+               settings["Rate up"][addr-1] = monData['rateUP']
+               settings["Rate down"][addr-1] = monData['rateDN']
+               settings["Limit V"][addr-1] = monData['limitV']
+               settings["Limit I"][addr-1] = monData['limitI']
+               settings["Limit T"][addr-1] = monData['limitT']
+               settings["Trip time"][addr-1] = monData['limitTRIP']
+               settings["Trigger threshold"][addr-1] = monData['threshold']
+            if new_channel:
+               for k in conf.scratch_rw_settings.keys():
+                  settings[k] = self.settings[k]   # copy current rw settings
+               settings["Vset"][addr-1] = monData['Vset']
+               settings["Rate up"][addr-1] = monData['rateUP']
+               settings["Rate down"][addr-1] = monData['rateDN']
+               settings["Limit V"][addr-1] = monData['limitV']
+               settings["Limit I"][addr-1] = monData['limitI']
+               settings["Limit T"][addr-1] = monData['limitT']
+               settings["Trip time"][addr-1] = monData['limitTRIP']
+               settings["Trigger threshold"][addr-1] = monData['threshold']
+
+      self.prev_online_channels = copy.deepcopy(self.online_channels)
       self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
 
    #
    # update Modbus registers from ODB keys changed by user
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
-      if self.probe_in_progress:
+      if path == f'{self.odb_settings_dir}/RTU mode':
          return
       if path == f'{self.odb_settings_dir}/Port device':
          return
       if path == f'{self.odb_settings_dir}/Report Modbus errors':
          return
-      if path == f'{self.odb_settings_dir}/Power command':
-         return
       if path == f'{self.odb_settings_dir}/Online':
-         return
-      if path == f'{self.odb_settings_dir}/Probe modules':
          return
       if path == f'{self.odb_settings_dir}/Grid display':
          return
+ 
       if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
       if idx is not None:  # array element is changed
-         addr = idx+1
          if not self.settings["Online"][idx]:
             self.client.msg(f"HV module {addr} is offline", is_error=True)
             return
          # module is online and register is read-write, update register value
          #print(f'{path} {idx} {new_value}')
          self.mutex.acquire()
+         addr = idx+1
          try:
             self.regMap[path]["func"](int(new_value), addr)
+            #print(path, new_value, addr)
          except Exception as e:
             self.client.msg(f"Error writing to HV module {addr}", is_error=True)
             # request update of all registers to prevent stale values in ODB
-            # self.updateODB(update_rw_settings=True)
+            #self.updateODB(update_rw_settings=True)
          self.mutex.release()
 
    def readout_func(self):
+      # add parameter to skip event buildint
+      """
       event = midas.event.Event()
       event.header.trigger_mask = midas.frontend.frontend_index
 
@@ -295,6 +267,118 @@ class HighVoltage(midas.frontend.EquipmentBase):
             event.create_bank(f"HV{str(idx).zfill(2)}", midas.TID_FLOAT, data)
       
       return event
+      """
+
+   # RPC functions
+   # HV channels number: [1...19]
+
+   def rpc_handler(self,client, cmd, args, max_len):
+      ret_int = midas.status_codes["SUCCESS"]
+      ret_str = ""
+       
+      if cmd == "set_enable_channel":
+         jargs = json.loads(args)
+         ch = jargs.get("channel")
+         value = jargs.get("value")
+         if (not self.channel_is_valid(ch)):
+            ret_int = midas.status_codes["FE_ERR_DRIVER"]
+            ret_str = json.dumps({"result": f'channel {ch} not valid'})
+         else:
+            self.set_enable_channel(ch, value)
+            ret_int = midas.status_codes["SUCCESS"]
+            ret_str = json.dumps({"result": f'ok'})
+
+      elif cmd == "set_adc_channel":
+         jargs = json.loads(args)
+         ch = jargs.get("channel")
+         value = jargs.get("value")
+         if (not self.channel_is_valid(ch)):
+            ret_int = midas.status_codes["FE_ERR_DRIVER"]
+            ret_str = json.dumps({"result": f'channel {ch} not valid'})
+         else:
+            self.set_adc_channel(ch, value)
+            ret_int = midas.status_codes["SUCCESS"]
+            ret_str = json.dumps({"result": f'ok'})
+
+      elif cmd == "set_enable_all":
+         jargs = json.loads(args)
+         value = jargs.get("value")
+         for ch in range(1,20):
+            self.set_enable_channel(ch, value)
+            time.sleep(0.1)
+         ret_int = midas.status_codes["SUCCESS"]
+         ret_str = json.dumps({"result": f'ok'})
+
+      elif cmd == "set_adc_all":
+         jargs = json.loads(args)
+         value = jargs.get("value")
+         for ch in range(1,20):
+            self.set_adc_channel(ch, value)
+         ret_int = midas.status_codes["SUCCESS"]
+         ret_str = json.dumps({"result": f'ok'})
+
+      elif cmd == "cmd":
+         jargs = json.loads(args)
+         ch = jargs.get("channel")
+         cmd = jargs.get("cmd").lower()
+         if (not self.channel_is_valid(ch)):
+            ret_int = midas.status_codes["FE_ERR_DRIVER"]
+            ret_str = json.dumps({"result": f'channel {ch} not valid'})
+         elif cmd not in ["on", "off", "reset"]:
+            ret_int = midas.status_codes["FE_ERR_DRIVER"]
+            ret_str = json.dumps({"result": f'command {cmd} not valid'})
+         else:
+            if self.param.mode == "rtu":
+               self.mutex.acquire()
+            if cmd == "on":
+               self.hv.powerOn(ch)
+            elif cmd == "off":
+               self.hv.powerOff(ch)
+            elif cmd == "reset":
+               self.hv.reset(ch)
+            if self.param.mode == "rtu":
+               self.mutex.release()
+         
+         ret_int = midas.status_codes["SUCCESS"]
+         ret_str = json.dumps({"result": f'ok'})
+
+      elif cmd == "get_channels_status":
+         ret_int = midas.status_codes["SUCCESS"]
+         ret_str = json.dumps({
+            "online": self.online_channels, 
+            "power": self.enabled_channels,
+            "adc": self.adc_channels,
+            "result": f'ok'
+         })
+
+      else:
+         ret_int = midas.status_codes["FE_ERR_DRIVER"]
+         ret_str = json.dumps({"result": f'unknown command {cmd}'})
+           
+      return (ret_int, ret_str)
+
+   def channel_is_valid(self, ch):
+      return (ch >= 1 and ch <= 19)
+
+   def set_adc_channel(self, ch, value):
+      b = ch - 1
+      mask = (1 << b)
+      if value == 1:
+         en = self.readRegister(0) | mask
+      elif value == 0:
+         en = self.readRegister(0) & ~mask
+      self.writeRegister(0, en)
+
+   def set_enable_channel(self, ch, value, safe=True):
+      b = ch - 1
+      mask = (1 << b)
+      if value == 1:
+         if(safe):      # safe mode prevent to enable channel with adc true (= bootloader)
+            self.set_adc_channel(ch, 0)
+         en = self.readRegister(1) | mask
+      elif value == 0:
+         en = self.readRegister(1) & ~mask
+      self.writeRegister(1, en)
 
 class MyFrontend(midas.frontend.FrontendBase):
 

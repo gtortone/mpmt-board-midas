@@ -41,9 +41,12 @@ class RunControl(midas.frontend.EquipmentBase):
 
       midas.frontend.EquipmentBase.__init__(self, client, equip_name, default_common, conf.default_settings)
 
-      # regMap contains readback values from FPGA 
+      # regMap contains settings/readback values from FPGA 
       conf.configRegisters(self.odb_settings_dir)
       self.regMap = conf.registers
+
+      self.odb_readback_dir = self.odb_settings_dir.replace("Settings", "Readback")
+      self.client.odb_set(self.odb_readback_dir, conf.default_settings)
 
       self.set_status("Initializing...", "yellowLight")
 
@@ -67,7 +70,9 @@ class RunControl(midas.frontend.EquipmentBase):
 
       if self.command_in_progress:
          return
+
       settings = copy.deepcopy(self.settings)
+      readback = conf.default_settings
       for k,v in self.regMap.items():
 
          regval = self.readRegister(v["memaddr"])
@@ -98,17 +103,19 @@ class RunControl(midas.frontend.EquipmentBase):
             if v["datatype"] == "boolset" or v["datatype"] == "intset":
                for i in range(0, v["count"]):
                   self.client.odb_set(f'{k}[{i}]', v["value"][i])
+                  self.client.odb_set(k.replace("Settings", "Readback"), v["value"][i])
             else:
                self.client.odb_set(k, v["value"])
+               self.client.odb_set(k.replace("Settings", "Readback"), v["value"])
          else:
             if v["datatype"] == "boolset" or v["datatype"] == "intset":
                for i in range(0, v["count"]):
-                  if v["value"][i] != settings[basekey][i]:
-                     self.client.odb_set(f'{k}[{i}]', v["value"][i])
-                     #print(f"scanRegister: set {k}[{i}] to {v['value'][i]}")
+                  #if v["value"][i] != readback[basekey][i]:
+                  self.client.odb_set(f'{k.replace("Settings", "Readback")}[{i}]', v["value"][i])
+                  #print(f"scanRegister: set {k}[{i}] to {v['value'][i]}")
             else:
-               if v["value"] != settings[basekey]: 
-                  self.client.odb_set(k, v["value"])
+               #if v["value"] != readback[basekey]: 
+               self.client.odb_set(k.replace("Settings", "Readback"), v["value"])
 
    def readout_func(self):
       self.scanRegisters()

@@ -10,7 +10,6 @@ scratch_ro_settings = {
 }
 
 scratch_rw_settings = {
-   "Power command": ["none"] * 19,
    "Vset": [0.0] * 19,
    "Rate up": [0] * 19,
    "Rate down": [0] * 19,
@@ -25,9 +24,7 @@ default_settings = {
    "RTU mode": False,
    "Port device": "/dev/ttyPS2",
    "Report Modbus errors": False, 
-   "Probe modules": False,
    "Online": [False] * 19,
-   "Power command": ["none"] * 19,
    "Status": [0] * 19,
    "Vset": [0.0] * 19,
    "V": [0.0] * 19,
@@ -43,7 +40,7 @@ default_settings = {
    "Alarm": [0] * 19,
    "Names": [ "Status", "V", "Power command", "T", "I", "Vset", "Rate up", "Rate down", "Limit V", "Limit I",
                "Limit T", "Trip time", "Trigger threshold", "Alarm"
-            ]
+            ],
 }
 
 def configRegisters(basepath):
@@ -67,6 +64,12 @@ def configRegisters(basepath):
    
    # read write
    registers[f'{basepath}/Power command'] = {
+      "mode": "RW",
+   }
+   registers[f'{basepath}/Power enable'] = {
+      "mode": "RW",
+   }
+   registers[f'{basepath}/ADC enable'] = {
       "mode": "RW",
    }
    registers[f'{basepath}/Vset'] = {
