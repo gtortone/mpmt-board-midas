@@ -99,25 +99,6 @@ function refresh_channels_status(arg) {
    setTimeout(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
 }
 
-function getOnlineModulesList() {
-  mpmtid = localStorage.mpmtid; 
-  return new Promise(function (resolve, reject) {
-    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online`])
-      .then(function (rpc) {
-        let mlist = [];
-        blist = rpc.result.data[0];
-        if (blist != null)
-           blist.map((el, i) => {
-             el ? mlist.push(i) : 0;
-           });
-        resolve(mlist);
-      })
-      .catch(function (error) {
-        mjsonrpc_error_alert(error);
-      });
-  });
-}
-
 function getOnModulesList() {
   mpmtid = localStorage.mpmtid;
   return new Promise(function (resolve, reject) {
@@ -140,64 +121,62 @@ function getOC(value, ch) {
   return (value & (1 << ch)) >> ch ? true : false;
 }
 
-function getHVStatusAll(value) {
-  let str = "UNK";
-  let style = "";
-  getOnModulesList().then((modules) => {
-    modules.map((ch) => {
-      switch (value[ch]) {
-        case 0:
-          str = "UP";
-          style = "color: green"
-          break;
-        case 1:
-          str = "DOWN";
-          style = "color: gray"
-          break;
-        case 2:
-          str = "RUP";
-          style = "color: orangered"
-          break;
-        case 3:
-          str = "RDN";
-          style = "color: saddlebrown"
-          break;
-        case 4:
-          str = "TUP";
-          style = "color: orangered"
-          break;
-        case 5:
-          str = "TDN";
-          style = "color: saddlebrown"
-          break;
-        case 6:
-          str = "TRIP";
-          style = "color: red"
-          break;
-        default:
-          break;
-      }
-      document.getElementById("hvstatus" + ch).innerHTML = `<b>${str}</b>`;
-      document.getElementById("hvstatus" + ch).style = style;
-    });
-  });
+function renderChannelState(ch, state) {
+   let str = ""
+   let style = ""
+   switch (state) {
+     case 0:
+       str = "UP";
+       style = "color: green"
+       break;
+     case 1:
+       str = "DOWN";
+       style = "color: gray"
+       break;
+     case 2:
+       str = "RUP";
+       style = "color: orangered"
+       break;
+     case 3:
+       str = "RDN";
+       style = "color: saddlebrown"
+       break;
+     case 4:
+       str = "TUP";
+       style = "color: orangered"
+       break;
+     case 5:
+       str = "TDN";
+       style = "color: saddlebrown"
+       break;
+     case 6:
+       str = "TRIP";
+       style = "color: red"
+       break;
+     default:
+       break;
+   }
+
+   document.getElementById(`state${ch}`).innerHTML = `<b>${str}</b>`;
+   document.getElementById(`state${ch}`).style = style;
 }
 
-function getHVAlarmAll(value) {
-  getOnModulesList().then((modules) => {
-    modules.map((ch, i) => {
-      let str = "";
-      if (value[i] == 0) {
-        str = "none";
-      } else {
-        if (value[i] & 1) str = str + "OV ";
-        if (value[i] & 2) str = str + "UV ";
-        if (value[i] & 4) str = str + "OC ";
-        if (value[i] & 8) str = str + "OT ";
-      }
-      document.getElementById("hvalarm" + ch).innerHTML = str;
-    });
-  });
+function renderChannelAlarm(ch, alarm) {
+   let str = ""
+   let style = ""
+
+   if (alarm == 0) {
+     str = "none";
+     style = "color: gray"
+   } else {
+     if (alarm & 1) str = str + "OV ";
+     if (alarm & 2) str = str + "UV ";
+     if (alarm & 4) str = str + "OC ";
+     if (alarm & 8) str = str + "OT ";
+     style = "color: red"
+   }
+   document.getElementById(`alarm${ch}`).innerHTML = str;
+   document.getElementById(`alarm${ch}`).style = style;
 }
 
 //

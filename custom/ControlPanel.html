@@ -126,18 +126,21 @@
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/I[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/T[${ch}]"></div></td>`;
-            html += `<td style="text-align: center"><div class="param${ch}" id="hvstatus${ch}"></div></td>`;
+            html += `<td style="text-align: center">
+               <div class="param${ch}" id="state${ch}"></div>
+               <div style="display: none" id="_state${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status[${ch}]" onchange="renderChannelState(${ch},this.value)" onload="onchange()"></div>
+            </td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate up[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate down[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit V[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit I[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit T[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trip time[${ch}]"></div></td>`;
-            html += `<td style="text-align: center"><div class="param${ch}" id="hvalarm${ch}"></div></td>`;
+            html += `<td style="text-align: center">
+               <div class="param${ch}" id="alarm${ch}"></div>
+               <div style="display: none" id="_alarm${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Alarm[${ch}]" onchange="renderChannelAlarm(${ch},this.value)" onload="onchange()"></div>
+            </td>`;
             html += "</tr>";
-
-            html += `<div style="display: none" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status" onchange="getHVStatusAll(this.value)" onload="onchange()"></div>`;
-            html += `<div style="display: none" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Alarm" onchange="getHVAlarmAll(this.value)" onload="onchange()"></div>`;
 
             // end build channel table
          });   // end modules.map()
