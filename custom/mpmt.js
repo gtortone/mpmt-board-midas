@@ -437,6 +437,14 @@ function call_cmd(ch, label) {
 // helpers
 //
 
+function validateInput(value, element) {
+   if (parseInt(value) < parseInt(element.getAttribute('min')) || parseInt(value) > parseInt(element.getAttribute('max'))) {
+      alert(`Error: value min:${element.getAttribute('min')} max:${element.getAttribute('max')}`)
+      return false
+   }
+   return true
+}
+
 function globalSet(key) {
   mpmtid = localStorage.mpmtid;
   if(authuser()) {
@@ -571,3 +579,4 @@ function showFailure(info = "") {
     gravity: "top",
   }).showToast();
 }
+

@@ -119,21 +119,21 @@
                   <button class="smlabel" onclick='call_cmd(${ch+1}, "reset")'>RESET</button>
                   </div>
                </td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table.Vset.min}  max=${settings_table.Vset.max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Vset'].min}  max=${settings_table['Vset'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]" data-validate="validateInput"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/V[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Trigger threshold'].min}  max=${settings_table['Trigger threshold'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]" data-validate="validateInput"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/I[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/T[${ch}]"></div></td>`;
             html += `<td style="text-align: center">
                <div class="param${ch}" id="state${ch}"></div>
                <div style="display: none" id="_state${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status[${ch}]" onchange="renderChannelState(${ch},this.value)" onload="onchange()"></div>
             </td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate up[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="50" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate down[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit V[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit I[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit T[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trip time[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Rate up'].min}  max=${settings_table['Rate up'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate up[${ch}]" data-validate="validateInput"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Rate down'].min}  max=${settings_table['Rate down'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate down[${ch}]" data-validate="validateInput"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Limit V'].min}  max=${settings_table['Limit V'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit V[${ch}]" data-validate="validateInput"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Limit I'].min}  max=${settings_table['Limit I'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit I[${ch}]" data-validate="validateInput"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Limit T'].min}  max=${settings_table['Limit T'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Limit T[${ch}]" data-validate="validateInput"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Trip time'].min}  max=${settings_table['Trip time'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trip time[${ch}]" data-validate="validateInput"></div></td>`;
             html += `<td style="text-align: center">
                <div class="param${ch}" id="alarm${ch}"></div>
                <div style="display: none" id="_alarm${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Alarm[${ch}]" onchange="renderChannelAlarm(${ch},this.value)" onload="onchange()"></div>
