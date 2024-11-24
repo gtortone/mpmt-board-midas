@@ -219,6 +219,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
  
       if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
+      addr = idx+1
       if idx is not None:  # array element is changed
          if not self.settings["Online"][idx]:
             self.client.msg(f"HV module {addr} is offline", is_error=True)
@@ -226,7 +227,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
          # module is online and register is read-write, update register value
          #print(f'{path} {idx} {new_value}')
          self.mutex.acquire()
-         addr = idx+1
          try:
             self.regMap[path]["func"](int(new_value), addr)
             #print(path, new_value, addr)
