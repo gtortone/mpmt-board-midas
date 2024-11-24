@@ -78,8 +78,6 @@
         html += '<td colspan="19" style="text-align: center">';
         html += '<button class="mbutton" onclick="set_enable_all(true)">Power all</button>';
         html += '<button class="mbutton" onclick="set_enable_adc_all(true)">Power and Enable all</button>';
-        html += '<button class="mbutton" onclick="SetHV()">Set HV to all</button>';
-        html += '<button class="mbutton" onclick="SetTh()">Set Threshold to all</button>';
         html += "</td></tr>";
         html += "<tr>";
         html += "<th> CH# </th>";
@@ -88,18 +86,18 @@
         html += "<th>OC</th>";
         html += "<th>ADC En</th>";
         html += "<th>HV power</th>";
-        html += "<th>HV set (V)</th>";
+        html += "<th><div><p>HV set (V)</p><button onclick='globalSet(\"Vset\")'>set</button></div></th>";
         html += "<th>HV mon (V)</th>";
-        html += "<th>Threshold (mV)</th>";
+        html += "<th><div><p>Threshold (mV)</p><button onclick='globalSet(\"Trigger threshold\")'>set</button></div></th>";
         html += "<th>Anode I</th>";
         html += "<th>T (C)</th>";
         html += "<th>Status</th>";
-        html += "<th>RampUp (V)</th>";
-        html += "<th>RampDown (V)</th>";
-        html += "<th>HV +/- Lim(V)</th>";
-        html += "<th>I Limit (uA)</th>";
-        html += "<th>T Limit (C)</th>";
-        html += "<th>Trip Time Limit (s)</th>";
+        html += "<th><div><p>RampUp (V)</p><button onclick='globalSet(\"Rate up\")'>set</button></div></th>";
+        html += "<th><div><p>RampDown (V)</p><button onclick='globalSet(\"Rate down\")'>set</button></div></th>";
+        html += "<th><div><p>HV +/- Lim(V)</p><button onclick='globalSet(\"Limit V\")'>set</button></div></th>";
+        html += "<th><div><p>I Limit (uA)</p><button onclick='globalSet(\"Limit I\")'>set</button></div></th>";
+        html += "<th><div><p>T Limit (C)</p><button onclick='globalSet(\"Limit T\")'>set</button></div></th>";
+        html += "<th><div><p>Trip Time Limit (s)</p><button onclick='globalSet(\"Trip time\")'>set</button></div></th>";
         html += "<th>Alarm</th>";
         html += "</tr>";
 
@@ -121,7 +119,7 @@
                   <button class="smlabel" onclick='call_cmd(${ch+1}, "reset")'>RESET</button>
                   </div>
                </td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min="0" max="1500" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table.Vset.min}  max=${settings_table.Vset.max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/V[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/I[${ch}]"></div></td>`;

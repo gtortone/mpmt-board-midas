@@ -6,6 +6,57 @@ let hvfe_running = false
 let rcfe_running = false
 let snfe_running = false
 
+let settings_table = {
+   "Vset" : {
+      "msg": "Enter voltage value: ",
+      "unit": "V",
+      "min": 25,
+      "max": 1500
+   },
+   "Trigger threshold" : {
+      "msg": "Enter threshold value: ",
+      "unit": "mV",
+      "min": 0,
+      "max": 2500 
+   },
+   "Rate up" : {
+      "msg": "Enter rampup rate: ",
+      "unit": "V/s",
+      "min": 0,
+      "max": 25 
+   },
+   "Rate down" : {
+      "msg": "Enter rampdown rate: ",
+      "unit": "V/s",
+      "min": 0,
+      "max": 25 
+   },
+   "Limit V" : {
+      "msg": "Enter voltage margin: ",
+      "unit": "V",
+      "min": 1,
+      "max": 20 
+   },
+   "Limit I" : {
+      "msg": "Enter current limit: ",
+      "unit": "uA",
+      "min": 1,
+      "max": 20 
+   },
+   "Limit T" : {
+      "msg": "Enter temperature limit: ",
+      "unit": "mV",
+      "min": 20,
+      "max": 70 
+   },
+   "Trip time" : {
+      "msg": "Enter trip time limit: ",
+      "unit": "s",
+      "min": 1,
+      "max": 1000 
+   },
+}
+
 function check_fe_running(fename, mpmtid) {
   var path = "/System/Clients";
   mjsonrpc_db_get_value(path)
@@ -386,49 +437,34 @@ function call_cmd(ch, label) {
 // helpers
 //
 
-function SetHV() {
+function globalSet(key) {
   mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    voltage = parseInt(prompt("Please enter the HV value (V):", ""));
-    getOnlineModulesList().then((modules) => {
-      modules.map(async function(ch) {
-        await mjsonrpc_db_set_value(
-          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]`,
-          voltage
-        );
-      });
-    });
-    showSuccess();
+  if(authuser()) {
+     value = prompt(`${settings_table[key].msg} (min: ${settings_table[key].min} max: ${settings_table[key].max}) [${settings_table[key].unit}]`, "")
+     if(value == undefined) {   // cancel button
+        showFailure("cancel");
+        return
+     }
+     value = parseInt(value)
+     if(value < settings_table[key].min || value > settings_table[key].max) {
+        alert(`Error: value min:${settings_table[key].min} max:${settings_table[key].max} [${settings_table[key].unit}]`)
+        return
+     }
+     // check min,max
+     online_channels.forEach( async (online, ch) => {
+        if(online)
+           await mjsonrpc_db_set_value(
+               `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/${key}[${ch}]`,
+               value
+           );
+     });
+     showSuccess()
   }
 }
 
-function EnHV() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    mjsonrpc_db_set_value(
-      `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power enable`,
-      Array(19).fill(true) 
-    ).then( function(rpc) {
-       showSuccess();
-    });
-  }
-}
-
-function SetTh() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    thr = prompt("Please enter the Threshold value (mV):", "");
-    getOnModulesList().then((modules) => {
-      modules.map((ch) => {
-        mjsonrpc_db_set_value(
-          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]`,
-          thr
-        );
-      });
-    });
-    showSuccess();
-  }
-}
+//
+// RC functions
+//
 
 function Pulser_freq(value, element) {
   let pulser = 1000 / value;
