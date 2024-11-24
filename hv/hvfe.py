@@ -70,8 +70,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
       self.enabled_channels = [False] * 19
       self.adc_channels = [False] * 19
 
-      self.probe_mutex = threading.Lock()
-
       # threads
       self.mutex = threading.Lock()
       # monitor thread to run updateODB()
@@ -276,7 +274,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
       ret_int = midas.status_codes["SUCCESS"]
       ret_str = ""
        
-      if cmd == "set_enable_channel":
+      if cmd == "set_enable_bit":
          jargs = json.loads(args)
          ch = jargs.get("channel")
          value = jargs.get("value")
@@ -284,11 +282,11 @@ class HighVoltage(midas.frontend.EquipmentBase):
             ret_int = midas.status_codes["FE_ERR_DRIVER"]
             ret_str = json.dumps({"result": f'channel {ch} not valid'})
          else:
-            self.set_enable_channel(ch, value)
+            self.set_enable_bit(ch, value)
             ret_int = midas.status_codes["SUCCESS"]
             ret_str = json.dumps({"result": f'ok'})
 
-      elif cmd == "set_adc_channel":
+      elif cmd == "set_adc_bit":
          jargs = json.loads(args)
          ch = jargs.get("channel")
          value = jargs.get("value")
@@ -296,7 +294,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
             ret_int = midas.status_codes["FE_ERR_DRIVER"]
             ret_str = json.dumps({"result": f'channel {ch} not valid'})
          else:
-            self.set_adc_channel(ch, value)
+            self.set_adc_bit(ch, value)
             ret_int = midas.status_codes["SUCCESS"]
             ret_str = json.dumps({"result": f'ok'})
 
@@ -304,7 +302,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
          jargs = json.loads(args)
          value = jargs.get("value")
          for ch in range(1,20):
-            self.set_enable_channel(ch, value)
+            self.set_enable_bit(ch, value)
             time.sleep(0.1)
          ret_int = midas.status_codes["SUCCESS"]
          ret_str = json.dumps({"result": f'ok'})
@@ -313,7 +311,15 @@ class HighVoltage(midas.frontend.EquipmentBase):
          jargs = json.loads(args)
          value = jargs.get("value")
          for ch in range(1,20):
-            self.set_adc_channel(ch, value)
+            self.set_adc_bit(ch, value)
+         ret_int = midas.status_codes["SUCCESS"]
+         ret_str = json.dumps({"result": f'ok'})
+
+      elif cmd == "set_enable_adc_all":
+         for ch in range(1,20):
+            self.set_enable_bit(ch, 1)
+            time.sleep(0.1)
+            self.set_adc_bit(ch, 1)
          ret_int = midas.status_codes["SUCCESS"]
          ret_str = json.dumps({"result": f'ok'})
 
@@ -328,6 +334,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
             ret_int = midas.status_codes["FE_ERR_DRIVER"]
             ret_str = json.dumps({"result": f'command {cmd} not valid'})
          else:
+            #print(ch, cmd)
             if self.param.mode == "rtu":
                self.mutex.acquire()
             if cmd == "on":
@@ -360,7 +367,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
    def channel_is_valid(self, ch):
       return (ch >= 1 and ch <= 19)
 
-   def set_adc_channel(self, ch, value):
+   def set_adc_bit(self, ch, value):
       b = ch - 1
       mask = (1 << b)
       if value == 1:
@@ -369,12 +376,12 @@ class HighVoltage(midas.frontend.EquipmentBase):
          en = self.readRegister(0) & ~mask
       self.writeRegister(0, en)
 
-   def set_enable_channel(self, ch, value, safe=True):
+   def set_enable_bit(self, ch, value, safe=True):
       b = ch - 1
       mask = (1 << b)
       if value == 1:
          if(safe):      # safe mode prevent to enable channel with adc true (= bootloader)
-            self.set_adc_channel(ch, 0)
+            self.set_adc_bit(ch, 0)
          en = self.readRegister(1) | mask
       elif value == 0:
          en = self.readRegister(1) & ~mask
