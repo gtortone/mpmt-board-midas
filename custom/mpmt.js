@@ -59,37 +59,44 @@ function check_fe_running(fename, mpmtid) {
 
 function refresh_channels_status(arg) {
    
-   setTimeout(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
+   jarg = Object()
 
-   // first time install handler
-   if (arg === undefined)
-      return
-
-   jarg = JSON.parse(arg)
-
-   online_channels = jarg.online;
-   power_channels = jarg.power;
-   adc_channels = jarg.adc;
+   if (arg === undefined) {
+      jarg.online = online_channels
+      jarg.power = power_channels
+      jarg.adc = adc_channels;   
+   } else {
+      jarg = JSON.parse(arg)
+      online_channels = jarg.online;
+      power_channels = jarg.power;
+      adc_channels = jarg.adc;
+   }
 
    jarg.online.forEach( (value, ch) => {
       if(value) {
          document.getElementById(`channel${ch}`).style.backgroundColor = ""    // online
          document.querySelectorAll(`.param${ch}`).forEach((el) => { el.style.display = ""})
-         document.getElementById(`pwrbtn${ch}`).innerHTML="OFF";
+         document.getElementById(`pwrbtn${ch}`).style="color: red";
+         document.getElementById(`pwrbtn${ch}`).innerHTML="<b>OFF</b>";
       } else {
          document.getElementById(`channel${ch}`).style.backgroundColor = "#ff9ca6" // offline
          document.querySelectorAll(`.param${ch}`).forEach((el) => { el.style.display = "none"})
-         document.getElementById(`pwrbtn${ch}`).innerHTML="ON";
+         document.getElementById(`pwrbtn${ch}`).style="color: green";
+         document.getElementById(`pwrbtn${ch}`).innerHTML="<b>ON</b>";
       }
    });
 
+   /*
    jarg.power.forEach( (value, ch) => { 
       document.getElementById(`pwr${ch}`).checked = value
    });
+   */
 
    jarg.adc.forEach( (value, ch) => {
       document.getElementById(`adc${ch}`).checked = value
    });
+
+   setTimeout(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
 }
 
 function getOnlineModulesList() {
@@ -130,40 +137,48 @@ function getOnModulesList() {
 }
 
 function getOC(value, ch) {
-  console.log(value)
   return (value & (1 << ch)) >> ch ? true : false;
 }
 
 function getHVStatusAll(value) {
   let str = "UNK";
+  let style = "";
   getOnModulesList().then((modules) => {
     modules.map((ch) => {
       switch (value[ch]) {
         case 0:
           str = "UP";
+          style = "color: green"
           break;
         case 1:
           str = "DOWN";
+          style = "color: gray"
           break;
         case 2:
           str = "RUP";
+          style = "color: orangered"
           break;
         case 3:
           str = "RDN";
+          style = "color: saddlebrown"
           break;
         case 4:
           str = "TUP";
+          style = "color: orangered"
           break;
         case 5:
           str = "TDN";
+          style = "color: saddlebrown"
           break;
         case 6:
           str = "TRIP";
+          style = "color: red"
           break;
         default:
           break;
       }
-      document.getElementById("hvstatus" + ch).innerHTML = str;
+      document.getElementById("hvstatus" + ch).innerHTML = `<b>${str}</b>`;
+      document.getElementById("hvstatus" + ch).style = style;
     });
   });
 }
@@ -229,16 +244,16 @@ function alert_rpc_error(status, reply) {
       dlgAlert("Failed to perform action!<div style='text-align:left'><br>Status code: " + status + "<br>Message: " + reply + "</div>"); 
 }
 
-function toggle_enable_channel(ch) {
+function toggle_enable_bit(ch) {
    if (online_channels[ch-1] == false)
-      call_set_enable_channel(ch, 1)
-   else call_set_enable_channel(ch, 0)
+      call_set_enable_bit(ch, 1)
+   else call_set_enable_bit(ch, 0)
 }
 
-function toggle_adc_channel(ch) {
+function toggle_adc_bit(ch) {
    if (adc_channels[ch-1] == false)
-      call_set_adc_channel(ch, 1)
-   else call_set_adc_channel(ch, 0)
+      call_set_adc_bit(ch, 1)
+   else call_set_adc_bit(ch, 0)
 }
 
 function set_enable_all(value) {
@@ -250,21 +265,19 @@ function set_adc_all(value) {
    call_set_adc_all(value)
 }
 
-function set_enable_and_adc_all(value) {
+function set_enable_adc_all(value) {
    if(authuser()) {
-      call_set_enable_all(value)
-      sleep(1000)
-      call_set_adc_all(value)
+      call_set_enable_adc_all(value)
    }
 }
 
-function call_set_enable_channel(ch, value) {
+function call_set_enable_bit(ch, value) {
 
   mpmtid = localStorage.mpmtid;
 
   let params = Object()
   params.client_name = `hvfe${mpmtid}`
-  params.cmd = "set_enable_channel"
+  params.cmd = "set_enable_bit"
   jargs = {"channel": ch, "value": value}
   params.args = JSON.stringify(jargs);
    
@@ -302,13 +315,35 @@ function call_set_enable_all(value) {
   });
 }
 
-function call_set_adc_channel(ch, value) {
+function call_set_enable_adc_all(value) {
 
   mpmtid = localStorage.mpmtid;
 
   let params = Object()
   params.client_name = `hvfe${mpmtid}`
-  params.cmd = "set_adc_channel"
+  params.cmd = "set_enable_adc_all"
+  jargs = {}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
+      showSuccess();
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
+}
+
+function call_set_adc_bit(ch, value) {
+
+  mpmtid = localStorage.mpmtid;
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "set_adc_bit"
   jargs = {"channel": ch, "value": value}
   params.args = JSON.stringify(jargs);
    

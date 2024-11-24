@@ -77,7 +77,7 @@
         html += "<tr>";
         html += '<td colspan="19" style="text-align: center">';
         html += '<button class="mbutton" onclick="set_enable_all(true)">Power all</button>';
-        html += '<button class="mbutton" onclick="set_enable_and_adc_all(true)">Power and Enable all</button>';
+        html += '<button class="mbutton" onclick="set_enable_adc_all(true)">Power and Enable all</button>';
         html += '<button class="mbutton" onclick="SetHV()">Set HV to all</button>';
         html += '<button class="mbutton" onclick="SetTh()">Set Threshold to all</button>';
         html += "</td></tr>";
@@ -109,10 +109,10 @@
             style = "";
             html += `<tr id="channel${ch}">`;
             html += `<td class="modbbox ledbig" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online[${ch}]" data-color="lightgreen" data-background-color="red">${ch+1}</td>`;
-            html += `<td style="text-align: center"><button id="pwrbtn${ch}" onclick="toggle_enable_channel(${ch+1})"></button><input id="pwr${ch}" type="checkbox" onclick="return false;"></td>`;
+            html += `<td style="text-align: center"><button id="pwrbtn${ch}" onclick="toggle_enable_bit(${ch+1})"></button></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Channel ratemeter[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" class="modbbox ledbig" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Overcurrent" data-color="lightgreen" data-background-color="red" data-formula="getOC(x, ${ch})"></div></td>`;
-            html += `<td><div class="param${ch}" style="text-align: center"><button onclick="toggle_adc_channel(${ch+1})">T</button><input id="adc${ch}" type="checkbox" onclick="return false;"></div></td>`;
+            html += `<td><div class="param${ch} modbbox ledbig" style="${style}" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Overcurrent" data-color="lightgreen" data-background-color="red" data-formula="getOC(x, ${ch})"></div></td>`;
+            html += `<td><div class="param${ch}" style="text-align: center"><button onclick="toggle_adc_bit(${ch+1})">T</button><input id="adc${ch}" type="checkbox" onclick="return false;"></div></td>`;
             html += `
                <td>
                   <div class="param${ch}" style="${style}">
