@@ -1,4 +1,61 @@
-let probe_in_progress = false;
+let online_channels = new Array(19).fill(false)
+let power_channels = new Array(19).fill(false)
+let adc_channels = new Array(19).fill(false)
+
+let hvfe_running = false
+let rcfe_running = false
+let snfe_running = false
+
+let settings_table = {
+   "Vset" : {
+      "msg": "Enter voltage value: ",
+      "unit": "V",
+      "min": 25,
+      "max": 1500
+   },
+   "Trigger threshold" : {
+      "msg": "Enter threshold value: ",
+      "unit": "mV",
+      "min": 0,
+      "max": 2500 
+   },
+   "Rate up" : {
+      "msg": "Enter rampup rate: ",
+      "unit": "V/s",
+      "min": 0,
+      "max": 25 
+   },
+   "Rate down" : {
+      "msg": "Enter rampdown rate: ",
+      "unit": "V/s",
+      "min": 0,
+      "max": 25 
+   },
+   "Limit V" : {
+      "msg": "Enter voltage margin: ",
+      "unit": "V",
+      "min": 1,
+      "max": 20 
+   },
+   "Limit I" : {
+      "msg": "Enter current limit: ",
+      "unit": "uA",
+      "min": 1,
+      "max": 20 
+   },
+   "Limit T" : {
+      "msg": "Enter temperature limit: ",
+      "unit": "mV",
+      "min": 20,
+      "max": 70 
+   },
+   "Trip time" : {
+      "msg": "Enter trip time limit: ",
+      "unit": "s",
+      "min": 1,
+      "max": 1000 
+   },
+}
 
 function check_fe_running(fename, mpmtid) {
   var path = "/System/Clients";
@@ -17,25 +74,29 @@ function check_fe_running(fename, mpmtid) {
         }
       }
 
-      setTimeout(check_fe_running.bind(null, fename, mpmtid), 5000);
-
       if (!fe_running) {
         document.getElementById(`${fename}_stopped`).style.display = "block";
-        if(fename.startsWith("snfe"))
+        if(fename.startsWith("snfe")) {
+           snfe_running = false
            document.getElementById("mpmt_sensors").style.display = 'none'
-        else if(fename.startsWith("hvfe")) {
+        } else if(fename.startsWith("hvfe")) {
+           hvfe_running = false
            document.getElementById("channels").style.display = 'none'
         } else if(fename.startsWith("rcfe")) {
+           rcfe_running = false
            document.getElementById("mpmt_clk_control").style.display = 'none'
            document.getElementById("mpmt_acq_control").style.display = 'none'
         }
       } else {
         document.getElementById(`${fename}_stopped`).style.display = "none";
-        if(fename.startsWith("snfe"))
+        if(fename.startsWith("snfe")) {
+           snfe_running = true      
            document.getElementById("mpmt_sensors").style.display = 'block'
-        else if(fename.startsWith("hvfe")) {
+        } else if(fename.startsWith("hvfe")) {
+           hvfe_running = true
            document.getElementById("channels").style.display = 'block'
         } else if(fename.startsWith("rcfe")) {
+           rcfe_running = true
            document.getElementById("mpmt_clk_control").style.display = 'block'
            document.getElementById("mpmt_acq_control").style.display = 'block'
         }
@@ -47,58 +108,53 @@ function check_fe_running(fename, mpmtid) {
     });
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+function refresh_channels_status(arg) {
+   
+   jarg = Object()
 
-function handle_banner_probe() {
-   probing = document.getElementById("probing")
-   banner = document.getElementById("probing_banner")
-   if(probing.innerText == 'y') {
-      // HV probing in progress
-      banner.style.display = ""
+   if (arg === undefined) {
+      jarg.online = online_channels
+      jarg.power = power_channels
+      jarg.adc = adc_channels;   
    } else {
-      banner.style.display = "none"
+      jarg = JSON.parse(arg)
+      online_channels = jarg.online;
+      power_channels = jarg.power;
+      adc_channels = jarg.adc;
    }
-}
 
-function getOnlineModulesArray() {
-  mpmtid = localStorage.mpmtid; 
-  return new Promise(function (resolve, reject) {
-    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online`])
-      .then(function (rpc) {
-        resolve(parseInt(rpc.result.data[0]));
-      })
-      .catch(function (error) {
-        mjsonrpc_error_alert(error);
-      });
-  });
-}
+   jarg.online.forEach( (value, ch) => {
+      if(value) {
+         document.getElementById(`channel${ch}`).style.backgroundColor = ""    // online
+         document.querySelectorAll(`.param${ch}`).forEach((el) => { el.style.display = ""})
+         document.getElementById(`pwrbtn${ch}`).style="color: red";
+         document.getElementById(`pwrbtn${ch}`).innerHTML="<b>OFF</b>";
+      } else {
+         document.getElementById(`channel${ch}`).style.backgroundColor = "#ff9ca6" // offline
+         document.querySelectorAll(`.param${ch}`).forEach((el) => { el.style.display = "none"})
+         document.getElementById(`pwrbtn${ch}`).style="color: green";
+         document.getElementById(`pwrbtn${ch}`).innerHTML="<b>ON</b>";
+      }
+   });
 
-function getOnlineModulesList() {
-  mpmtid = localStorage.mpmtid; 
-  return new Promise(function (resolve, reject) {
-    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online`])
-      .then(function (rpc) {
-        let mlist = [];
-        blist = rpc.result.data[0];
-        if (blist != null)
-           blist.map((el, i) => {
-             el ? mlist.push(i) : 0;
-           });
-        resolve(mlist);
-      })
-      .catch(function (error) {
-        mjsonrpc_error_alert(error);
-      });
-  });
+   /*
+   jarg.power.forEach( (value, ch) => { 
+      document.getElementById(`pwr${ch}`).checked = value
+   });
+   */
+
+   jarg.adc.forEach( (value, ch) => {
+      document.getElementById(`adc${ch}`).checked = value
+   });
+
+   setTimeout(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
 }
 
 function getOnModulesList() {
   mpmtid = localStorage.mpmtid;
   return new Promise(function (resolve, reject) {
     mjsonrpc_db_get_values([
-      `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
+      `/Equipment/MPMT-RunControl${mpmtid}/Readback/Power enable`,
     ])
       .then(function (rpc) {
         let mlist = [];
@@ -116,370 +172,307 @@ function getOC(value, ch) {
   return (value & (1 << ch)) >> ch ? true : false;
 }
 
-function HVProbe() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    (async () => {
-      probe_in_progress = true;
-      // start probing
-      await mjsonrpc_db_set_value(
-        `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules`,
-        true
-      ).catch((error) => {
-        mjsonrpc_error_alert(error);
-      });
+function renderChannelState(ch, state) {
+   let str = ""
+   let style = ""
+   switch (state) {
+     case 0:
+       str = "UP";
+       style = "color: green"
+       break;
+     case 1:
+       str = "DOWN";
+       style = "color: gray"
+       break;
+     case 2:
+       str = "RUP";
+       style = "color: orangered"
+       break;
+     case 3:
+       str = "RDN";
+       style = "color: saddlebrown"
+       break;
+     case 4:
+       str = "TUP";
+       style = "color: orangered"
+       break;
+     case 5:
+       str = "TDN";
+       style = "color: saddlebrown"
+       break;
+     case 6:
+       str = "TRIP";
+       style = "color: red"
+       break;
+     default:
+       break;
+   }
 
-      // waiting for probing
-      let probing = true;
-      while (probing) {
-        await mjsonrpc_db_get_values([
-          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Probe modules`,
-        ])
-          .then((rpc) => {
-            probing = rpc.result.data[0];
-          })
-          .catch((error) => {
-            mjsonrpc_error_alert(error);
-          });
-        await sleep(2000);
-      }
-      probe_in_progress = false;
-    })();
-  }
+   document.getElementById(`state${ch}`).innerHTML = `<b>${str}</b>`;
+   document.getElementById(`state${ch}`).style = style;
 }
 
-function getHVStatusAll(value) {
-  if (probe_in_progress) return;
-  let str = "UNK";
-  getOnModulesList().then((modules) => {
-    modules.map((ch) => {
-      switch (value[ch]) {
-        case 0:
-          str = "UP";
-          break;
-        case 1:
-          str = "DOWN";
-          break;
-        case 2:
-          str = "RUP";
-          break;
-        case 3:
-          str = "RDN";
-          break;
-        case 4:
-          str = "TUP";
-          break;
-        case 5:
-          str = "TDN";
-          break;
-        case 6:
-          str = "TRIP";
-          break;
-        default:
-          break;
-      }
-      document.getElementById("hvstatus" + ch).innerHTML = str;
-    });
-  });
+function renderChannelAlarm(ch, alarm) {
+   let str = ""
+   let style = ""
+
+   if (alarm == 0) {
+     str = "none";
+     style = "color: gray"
+   } else {
+     if (alarm & 1) str = str + "OV ";
+     if (alarm & 2) str = str + "UV ";
+     if (alarm & 4) str = str + "OC ";
+     if (alarm & 8) str = str + "OT ";
+     style = "color: red"
+   }
+   document.getElementById(`alarm${ch}`).innerHTML = str;
+   document.getElementById(`alarm${ch}`).style = style;
 }
 
-function getHVAlarmAll(value) {
-  if (probe_in_progress) return;
-  getOnModulesList().then((modules) => {
-    modules.map((ch, i) => {
-      let str = "";
-      if (value[i] == 0) {
-        str = "none";
-      } else {
-        if (value[i] & 1) str = str + "OV ";
-        if (value[i] & 2) str = str + "UV ";
-        if (value[i] & 4) str = str + "OC ";
-        if (value[i] & 8) str = str + "OT ";
-      }
-      document.getElementById("hvalarm" + ch).innerHTML = str;
-    });
-  });
-}
+//
+// RPC functions
+//
 
-/*
- * adc mask functions
- */
+function hvfe_rpc(cmd, args, callback, maxlen) {
+   let params = Object()
 
-function adcmask_to_checkboxes() {
-  if (probe_in_progress) return;
-  mjsonrpc_db_get_values([
-    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
-  ]).then(function (rpc) {
-      mask = parseInt(rpc.result.data[0]);
-      getOnlineModulesList().then((modules) => {
-         modules.map((ch) => {
-            if ((mask & (1 << ch)) > 0)
-               document.getElementById("adc" + ch).checked = true;
-            else document.getElementById("adc" + ch).checked = false;
-         });
-      })
-    .catch(function (error) {
-      mjsonrpc_error_alert(error);
-    });
-  });
-}
-
-function checkboxes_to_adcmask() {
-  mpmtid = localStorage.mpmtid;
-  if (probe_in_progress) return;
-  getOnlineModulesList().then((modules) => {
-    let mask = 0;
-    modules.map((ch) => {
-      let el = document.getElementById("adc" + ch);
-      if (el.checked) {
-        mask |= (1 << ch);
-      }
-    });
-
-    // Avoid negative hex values in JS.
-    mask = mask >>> 0; 
-    mjsonrpc_db_set_value(
-      `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
-      mask
-    ).catch((error) => {
-      mjsonrpc_error_alert(error);
-    });
-  });
-}
-
-/*
- * power mask functions
- */
-
-function check_poweroff(ch) {
-  mpmtid = localStorage.mpmtid; 
-  cb = document.getElementById("pw" + ch);
-  if (cb.checked == false) {
-    mjsonrpc_db_get_values([`/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status`])
-      .then((rpc) => {
-        let status = rpc.result.data[0][ch];
-        if (status != 1) {
-          // 1: DOWN
-          showFailure(
-            `HV module ${ch} is not down. Please shutdown HV before power down`
-          );
-          cb.checked = true;
-        }
-        checkboxes_to_powermask();
-      })
-      .catch((error) => {
-        mjsonrpc_error_alert(error);
-      });
-  } else checkboxes_to_powermask();
-}
-
-function powermask_to_checkboxes() {
-  if (probe_in_progress) return;
-  mjsonrpc_db_get_values([
-    `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
-  ]).then(function (rpc) {
-      mask = parseInt(rpc.result.data[0]);
-      getOnlineModulesList().then((modules) => {
-         modules.map((ch) => {
-            document.getElementById("pw" + ch).checked = mask & (1 << ch);
-            handle_adc_checkbox(ch);
-         });
-         checkboxes_to_adcmask();
-      })
-    .catch(function (error) {
-      mjsonrpc_error_alert(error);
-    });
-
-  });
-}
-
-function checkboxes_to_powermask() {
-  mpmtid = localStorage.mpmtid;
-  if (probe_in_progress) return;
-  getOnlineModulesList().then((modules) => {
-    let mask = 0;
-    modules.map((ch) => {
-      let el = document.getElementById("pw" + ch);
-      if (el.checked) {
-        mask |= (1 << ch);
-      }
-      handle_adc_checkbox(ch);
-    });
-    checkboxes_to_adcmask();
-
-    // Avoid negative hex values in JS.
-    mask = mask >>> 0;
-    mjsonrpc_db_set_value(
-      `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
-      mask
-    ).catch((error) => {
-      mjsonrpc_error_alert(error);
-    });
-  });
-}
-
-function authuser() {
-  var pass = "1234";
-  var str = prompt("please enter the admin password:");
-  if (str == pass) {
-    return true;
-  }
-  showFailure("(wrong password)");
-  return false;
-}
-
-function showSuccess(info = "") {
-  Toastify({
-    text: `Operation successfully completed\n${info}`,
-    style: {
-      background: "green",
-    },
-    position: "right",
-    gravity: "top",
-  }).showToast();
-}
-
-function showFailure(info = "") {
-  Toastify({
-    text: `Operation failed\n${info}`,
-    style: {
-      background: "red",
-    },
-    position: "right",
-    gravity: "top",
-  }).showToast();
-}
-
-function SetHV() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    voltage = parseInt(prompt("Please enter the HV value (V):", ""));
-    getOnlineModulesList().then((modules) => {
-      modules.map((ch) => {
-        mjsonrpc_db_set_value(
-          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]`,
-          voltage
-        );
-      });
-    });
-    showSuccess();
-  }
-}
-
-function EnHV() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    getOnlineModulesList().then((modules) => {
-      let mask = 0;
-      modules.map((ch) => {
-        mask += 2 ** ch;
-      });
-      mjsonrpc_db_set_value(
-        `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
-        mask
-      ).then( function(rpc) {
-         powermask_to_checkboxes();
-      });
-    });
-    showSuccess();
-  }
-}
-
-function SetTh() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    thr = prompt("Please enter the Threshold value (mV):", "");
-    getOnModulesList().then((modules) => {
-      modules.map((ch) => {
-        mjsonrpc_db_set_value(
-          `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]`,
-          thr
-        );
-      });
-    });
-    showSuccess();
-  }
-}
-
-function EnableAll() {
-  mpmtid = localStorage.mpmtid;
-  if (authuser()) {
-    getOnlineModulesList().then((modules) => {
-      let mask = 0;
-      modules.map((ch) => {
-        mask += 2 ** ch;
-      });
-      mjsonrpc_db_set_value(
-         `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC sampling`,
-         mask).then( function(rpc) {
-            adcmask_to_checkboxes()
-      });   
-      mjsonrpc_db_set_value(
-        `/Equipment/MPMT-RunControl${mpmtid}/Settings/Power enable`,
-        mask
-      ).then( function(rpc) {
-         powermask_to_checkboxes();
-      });
-    });
-    showSuccess();
-  }
-}
-
-function HVon(index) {
-  mpmtid = localStorage.mpmtid;
-  path = `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power command[${index}]`;
-  mjsonrpc_db_paste([path], ["on"])
-    .then(function (rpc) {
-      showSuccess();
-    })
-    .catch(function (error) {
-      mjsonrpc_error_alert(error);
-    });
-}
-
-function HVoff(index) {
-  mpmtid = localStorage.mpmtid;
-  path = `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power command[${index}]`;
-  mjsonrpc_db_paste([path], ["off"])
-    .then(function (rpc) {
-      showSuccess();
-    })
-    .catch(function (error) {
-      mjsonrpc_error_alert(error);
-    });
-}
-
-function HVonAll(){
-  if (authuser()){
-    getOnlineModulesList().then((modules) => {
-     modules.forEach(function(value, i) {
-        HVon(value);
-     });
+   mpmtid = localStorage.mpmtid;
+   params.client_name = `hvfe${mpmtid}`;
+   params.cmd = cmd;
+   params.args = JSON.stringify(args);
+    
+   if (maxlen !== undefined) {
+      params.max_reply_length = maxlen;
+   }
+  
+   mjsonrpc_call("jrpc", params).then(function(rpc) {
+      let [status, reply] = parse_rpc_response(rpc.result);
+      if (status == 1)
+         callback(reply);
+      else
+        alert_rpc_error(status, reply);
    });
+};
+
+function parse_rpc_response(rpc_result) {
+  let status = rpc_result.status;
+  let reply = "";
+  
+  if (status == 1) {
+    // Only get a reply from mjsonrpc if status is 1
+    let parsed = JSON.parse(rpc_result.reply);
+    status = parsed["code"];
+    reply = parsed["msg"];
   }
+  
+  return [status, reply];
 }
 
-function HVoffAll(){
-  if (authuser()){
-    getOnlineModulesList().then((modules) => {
-     modules.forEach(function(value, i) {
-        HVoff(value);
-     });
-   });
-  }
+function alert_rpc_error(status, reply) {
+   if(hvfe_running)
+      dlgAlert("Failed to perform action!<div style='text-align:left'><br>Status code: " + status + "<br>Message: " + reply + "</div>"); 
 }
 
-function HVReset(index) {
+function toggle_enable_bit(ch) {
+   if (online_channels[ch-1] == false)
+      call_set_enable_bit(ch, 1)
+   else call_set_enable_bit(ch, 0)
+}
+
+function toggle_adc_bit(ch) {
+   if (adc_channels[ch-1] == false)
+      call_set_adc_bit(ch, 1)
+   else call_set_adc_bit(ch, 0)
+}
+
+function set_enable_all(value) {
+   if(authuser())
+      call_set_enable_all(value)
+}
+
+function set_adc_all(value) {
+   call_set_adc_all(value)
+}
+
+function set_enable_adc_all(value) {
+   if(authuser()) {
+      call_set_enable_adc_all(value)
+   }
+}
+
+function call_set_enable_bit(ch, value) {
+
   mpmtid = localStorage.mpmtid;
-  path = `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Power command[${index}]`;
-  mjsonrpc_db_paste([path], ["reset"])
-    .then(function (rpc) {
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "set_enable_bit"
+  jargs = {"channel": ch, "value": value}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
       showSuccess();
-    })
-    .catch(function (error) {
-      mjsonrpc_error_alert(error);
-    });
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
 }
+
+function call_set_enable_all(value) {
+
+  mpmtid = localStorage.mpmtid;
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "set_enable_all"
+  jargs = {"value": value}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
+      showSuccess();
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
+}
+
+function call_set_enable_adc_all(value) {
+
+  mpmtid = localStorage.mpmtid;
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "set_enable_adc_all"
+  jargs = {}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
+      showSuccess();
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
+}
+
+function call_set_adc_bit(ch, value) {
+
+  mpmtid = localStorage.mpmtid;
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "set_adc_bit"
+  jargs = {"channel": ch, "value": value}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
+      showSuccess();
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
+}
+
+function call_set_adc_all(value) {
+
+  mpmtid = localStorage.mpmtid;
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "set_adc_all"
+  jargs = {"value": value}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
+      showSuccess();
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
+}
+
+function call_cmd(ch, label) {
+
+  mpmtid = localStorage.mpmtid;
+
+  let params = Object()
+  params.client_name = `hvfe${mpmtid}`
+  params.cmd = "cmd"
+  jargs = {"channel": ch, "cmd": label}
+  params.args = JSON.stringify(jargs);
+   
+  mjsonrpc_call("jrpc", params).then(function(rpc) {
+    let [status, reply] = parse_rpc_response(rpc.result);
+    if (status == 1) {
+      showSuccess();
+    } else {
+      showFailure()
+    }
+  }).catch(function(error) {
+    mjsonrpc_error_alert(error);
+  });
+}
+
+//
+// helpers
+//
+
+function validateInput(value, element) {
+   if (parseInt(value) < parseInt(element.getAttribute('min')) || parseInt(value) > parseInt(element.getAttribute('max'))) {
+      alert(`Error: value min:${element.getAttribute('min')} max:${element.getAttribute('max')}`)
+      return false
+   }
+   return true
+}
+
+function globalSet(key) {
+  mpmtid = localStorage.mpmtid;
+  if(authuser()) {
+     value = prompt(`${settings_table[key].msg} (min: ${settings_table[key].min} max: ${settings_table[key].max}) [${settings_table[key].unit}]`, "")
+     if(value == undefined) {   // cancel button
+        showFailure("cancel");
+        return
+     }
+     value = parseInt(value)
+     if(value < settings_table[key].min || value > settings_table[key].max) {
+        alert(`Error: value min:${settings_table[key].min} max:${settings_table[key].max} [${settings_table[key].unit}]`)
+        return
+     }
+     // check min,max
+     online_channels.forEach( async (online, ch) => {
+        if(online)
+           await mjsonrpc_db_set_value(
+               `/Equipment/MPMT-HighVoltage${mpmtid}/Settings/${key}[${ch}]`,
+               value
+           );
+     });
+     showSuccess()
+  }
+}
+
+//
+// RC functions
+//
 
 function Pulser_freq(value, element) {
   let pulser = 1000 / value;
@@ -547,52 +540,43 @@ function SetClkAuto() {
     });
 }
 
-function handle_adc_checkbox(ch) {
-  let power_enabled = document.getElementById(`pw${ch}`).checked;
-  if (power_enabled) {
-    /* user power on channel:
-     * - show channel metrics
-     */
-    document.getElementById(`cell${ch}-1`).style.display = "block";
-    document.getElementById(`cell${ch}-2`).style.display = "block";
-    document.getElementById(`cell${ch}-3`).style.display = "block";
-    document.getElementById(`cell${ch}-4`).style.display = "block";
-    document.getElementById(`cell${ch}-5`).style.display = "block";
-    document.getElementById(`cell${ch}-6`).style.display = "block";
-    document.getElementById(`cell${ch}-7`).style.display = "block";
-    document.getElementById(`cell${ch}-8`).style.display = "block";
-    document.getElementById(`cell${ch}-9`).style.display = "block";
-    document.getElementById(`cell${ch}-10`).style.display = "block";
-    document.getElementById(`cell${ch}-11`).style.display = "block";
-    document.getElementById(`cell${ch}-12`).style.display = "block";
-    document.getElementById(`cell${ch}-13`).style.display = "block";
-    document.getElementById(`cell${ch}-14`).style.display = "block";
-    document.getElementById(`cell${ch}-15`).style.display = "block";
-    document.getElementById(`hvstatus${ch}`).style.display = "block";
-    document.getElementById(`hvalarm${ch}`).style.display = "block";
-  } else {
-    /* user power off channel :
-     * - disable ADC sampling
-     * - hide channel metrics
-     */
-    let adc_input = document.getElementById(`adc${ch}`);
-    adc_input.checked = false;
-    document.getElementById(`cell${ch}-1`).style.display = "none";
-    document.getElementById(`cell${ch}-2`).style.display = "none";
-    document.getElementById(`cell${ch}-3`).style.display = "none";
-    document.getElementById(`cell${ch}-4`).style.display = "none";
-    document.getElementById(`cell${ch}-5`).style.display = "none";
-    document.getElementById(`cell${ch}-6`).style.display = "none";
-    document.getElementById(`cell${ch}-7`).style.display = "none";
-    document.getElementById(`cell${ch}-8`).style.display = "none";
-    document.getElementById(`cell${ch}-9`).style.display = "none";
-    document.getElementById(`cell${ch}-10`).style.display = "none";
-    document.getElementById(`cell${ch}-11`).style.display = "none";
-    document.getElementById(`cell${ch}-12`).style.display = "none";
-    document.getElementById(`cell${ch}-13`).style.display = "none";
-    document.getElementById(`cell${ch}-14`).style.display = "none";
-    document.getElementById(`cell${ch}-15`).style.display = "none";
-    document.getElementById(`hvstatus${ch}`).style.display = "none";
-    document.getElementById(`hvalarm${ch}`).style.display = "none";
-  }
+//
+// utility functions
+//
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function authuser() {
+  var pass = "1234";
+  var str = prompt("please enter the admin password:");
+  if (str == pass) {
+    return true;
+  }
+  showFailure("(wrong password)");
+  return false;
+}
+
+function showSuccess(info = "") {
+  Toastify({
+    text: `Operation successfully completed\n${info}`,
+    style: {
+      background: "green",
+    },
+    position: "right",
+    gravity: "top",
+  }).showToast();
+}
+
+function showFailure(info = "") {
+  Toastify({
+    text: `Operation failed\n${info}`,
+    style: {
+      background: "red",
+    },
+    position: "right",
+    gravity: "top",
+  }).showToast();
+}
+
