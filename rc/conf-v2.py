@@ -1,5 +1,4 @@
 
-registers = {}
 
 default_settings = {
    "Board startup mode": ["none"] * 19,
@@ -72,6 +71,8 @@ default_settings = {
 }
 
 def configRegisters(basepath):
+
+   registers = {}
 
    registers[f'{basepath}/Enable ADC sampling'] = {
       "mode": "RW",
@@ -252,274 +253,276 @@ def configRegisters(basepath):
       "datatype": "intset",
       "count": 19,
    }
-   registers[f'{basepath}/Dead time'] = {    # OK
+   registers[f'{basepath}/Dead time'] = {
       "mode": "R",
       "memaddr": 27,
       "datatype": "int",
    }
-   registers[f'{basepath}/Time to peak CH0'] = {    # OK
+   registers[f'{basepath}/Time to peak CH0'] = {
       "mode": "RW",
       "memaddr": 28,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH1'] = {    # OK
+   registers[f'{basepath}/Time to peak CH1'] = {
       "mode": "RW",
       "memaddr": 28,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH2'] = {    # OK
+   registers[f'{basepath}/Time to peak CH2'] = {
       "mode": "RW",
       "memaddr": 29,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH3'] = {    # OK
+   registers[f'{basepath}/Time to peak CH3'] = {
       "mode": "RW",
       "memaddr": 29,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH4'] = {    # OK
+   registers[f'{basepath}/Time to peak CH4'] = {
       "mode": "RW",
       "memaddr": 30,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH5'] = {    # OK
+   registers[f'{basepath}/Time to peak CH5'] = {
       "mode": "RW",
       "memaddr": 30,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH6'] = {    # OK
+   registers[f'{basepath}/Time to peak CH6'] = {
       "mode": "RW",
       "memaddr": 31,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH7'] = {    # OK
+   registers[f'{basepath}/Time to peak CH7'] = {
       "mode": "RW",
       "memaddr": 31,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH8'] = {    # OK
+   registers[f'{basepath}/Time to peak CH8'] = {
       "mode": "RW",
       "memaddr": 32,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH9'] = {    # OK
+   registers[f'{basepath}/Time to peak CH9'] = {
       "mode": "RW",
       "memaddr": 32,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH10'] = {    # OK
+   registers[f'{basepath}/Time to peak CH10'] = {
       "mode": "RW",
       "memaddr": 33,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH11'] = {    # OK
+   registers[f'{basepath}/Time to peak CH11'] = {
       "mode": "RW",
       "memaddr": 33,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH12'] = {    # OK
+   registers[f'{basepath}/Time to peak CH12'] = {
       "mode": "RW",
       "memaddr": 34,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH13'] = {    # OK
+   registers[f'{basepath}/Time to peak CH13'] = {
       "mode": "RW",
       "memaddr": 34,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH14'] = {    # OK
+   registers[f'{basepath}/Time to peak CH14'] = {
       "mode": "RW",
       "memaddr": 35,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH15'] = {    # OK
+   registers[f'{basepath}/Time to peak CH15'] = {
       "mode": "RW",
       "memaddr": 35,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH16'] = {    # OK
+   registers[f'{basepath}/Time to peak CH16'] = {
       "mode": "RW",
       "memaddr": 36,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH17'] = {    # OK
+   registers[f'{basepath}/Time to peak CH17'] = {
       "mode": "RW",
       "memaddr": 36,
       "datatype": "bitset",
       "startBit": 0,
       "count": 12
    }
-   registers[f'{basepath}/Time to peak CH18'] = {    # OK
+   registers[f'{basepath}/Time to peak CH18'] = {
       "mode": "RW",
       "memaddr": 37,
       "datatype": "bitset",
       "startBit": 12,
       "count": 12
    }
-   registers[f'{basepath}/TDC delay CH0'] = {    # OK
+   registers[f'{basepath}/TDC delay CH0'] = {
       "mode": "RW",
       "memaddr": 38,
       "datatype": "bitset",
       "startBit": 24,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH1'] = {    # OK
+   registers[f'{basepath}/TDC delay CH1'] = {
       "mode": "RW",
       "memaddr": 38,
       "datatype": "bitset",
       "startBit": 16,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH2'] = {    # OK
+   registers[f'{basepath}/TDC delay CH2'] = {
       "mode": "RW",
       "memaddr": 38,
       "datatype": "bitset",
       "startBit": 8,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH3'] = {    # OK
+   registers[f'{basepath}/TDC delay CH3'] = {
       "mode": "RW",
       "memaddr": 38,
       "datatype": "bitset",
       "startBit": 0,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH4'] = {    # OK
+   registers[f'{basepath}/TDC delay CH4'] = {
       "mode": "RW",
       "memaddr": 39,
       "datatype": "bitset",
       "startBit": 24,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH5'] = {    # OK
+   registers[f'{basepath}/TDC delay CH5'] = {
       "mode": "RW",
       "memaddr": 39,
       "datatype": "bitset",
       "startBit": 16,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH6'] = {    # OK
+   registers[f'{basepath}/TDC delay CH6'] = {
       "mode": "RW",
       "memaddr": 39,
       "datatype": "bitset",
       "startBit": 8,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH7'] = {    # OK
+   registers[f'{basepath}/TDC delay CH7'] = {
       "mode": "RW",
       "memaddr": 39,
       "datatype": "bitset",
       "startBit": 0,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH8'] = {    # OK
+   registers[f'{basepath}/TDC delay CH8'] = {
       "mode": "RW",
       "memaddr": 40,
       "datatype": "bitset",
       "startBit": 24,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH9'] = {    # OK
+   registers[f'{basepath}/TDC delay CH9'] = {
       "mode": "RW",
       "memaddr": 40,
       "datatype": "bitset",
       "startBit": 16,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH10'] = {    # OK
+   registers[f'{basepath}/TDC delay CH10'] = {
       "mode": "RW",
       "memaddr": 40,
       "datatype": "bitset",
       "startBit": 8,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH11'] = {    # OK
+   registers[f'{basepath}/TDC delay CH11'] = {
       "mode": "RW",
       "memaddr": 40,
       "datatype": "bitset",
       "startBit": 0,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH12'] = {    # OK
+   registers[f'{basepath}/TDC delay CH12'] = {
       "mode": "RW",
       "memaddr": 41,
       "datatype": "bitset",
       "startBit": 24,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH13'] = {    # OK
+   registers[f'{basepath}/TDC delay CH13'] = {
       "mode": "RW",
       "memaddr": 41,
       "datatype": "bitset",
       "startBit": 16,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH14'] = {    # OK
+   registers[f'{basepath}/TDC delay CH14'] = {
       "mode": "RW",
       "memaddr": 41,
       "datatype": "bitset",
       "startBit": 8,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH15'] = {    # OK
+   registers[f'{basepath}/TDC delay CH15'] = {
       "mode": "RW",
       "memaddr": 41,
       "datatype": "bitset",
       "startBit": 0,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH16'] = {    # OK
+   registers[f'{basepath}/TDC delay CH16'] = {
       "mode": "RW",
       "memaddr": 42,
       "datatype": "bitset",
       "startBit": 24,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH17'] = {    # OK
+   registers[f'{basepath}/TDC delay CH17'] = {
       "mode": "RW",
       "memaddr": 42,
       "datatype": "bitset",
       "startBit": 16,
       "count": 8
    }
-   registers[f'{basepath}/TDC delay CH18'] = {    # OK
+   registers[f'{basepath}/TDC delay CH18'] = {
       "mode": "RW",
       "memaddr": 42,
       "datatype": "bitset",
       "startBit": 8,
       "count": 8
    }
+
+   return registers

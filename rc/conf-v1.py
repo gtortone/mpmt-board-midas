@@ -1,6 +1,4 @@
 
-registers = {}
-
 default_settings = {
    "Board startup mode": ["none"] * 19,
    "Enable ADC sampling": 0,
@@ -35,6 +33,8 @@ default_settings = {
 }
 
 def configRegisters(basepath):
+
+   registers = {}
 
    registers[f'{basepath}/Enable ADC sampling'] = {
       "mode": "RW",
@@ -224,3 +224,4 @@ def configRegisters(basepath):
       "count": 19,
    }
 
+   return registers

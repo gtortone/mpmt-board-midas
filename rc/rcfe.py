@@ -41,17 +41,20 @@ class RunControl(midas.frontend.EquipmentBase):
 
       midas.frontend.EquipmentBase.__init__(self, client, equip_name, default_common, conf.default_settings)
 
-      # regMap contains settings/readback values from FPGA 
-      conf.configRegisters(self.odb_settings_dir)
-      self.regMap = conf.registers
+      # odb_settings contains settings values from FPGA 
+      self.odb_settings = conf.configRegisters(self.odb_settings_dir)
 
+      # odb_readback contains readback values from FPGA 
       self.odb_readback_dir = self.odb_settings_dir.replace("Settings", "Readback")
+      self.odb_readback = conf.configRegisters(self.odb_readback_dir)
+
+      # init readback ODB structure
       self.client.odb_set(self.odb_readback_dir, conf.default_settings)
 
       self.set_status("Initializing...", "yellowLight")
 
       self.command_in_progress = False
-      self.scanRegisters(init=True)
+      self.scanRegisters(update_rw_settings=True)
 
       client.odb_watch(f"{self.odb_settings_dir}/Board startup mode", self.watchBoardCommand, pass_changed_value_only=True)
   
@@ -66,14 +69,12 @@ class RunControl(midas.frontend.EquipmentBase):
    #
    # update ODB keys from FPGA registers
    #
-   def scanRegisters(self, init=False):
+   def scanRegisters(self, update_rw_settings=False):
 
       if self.command_in_progress:
          return
 
-      settings = copy.deepcopy(self.settings)
-      readback = conf.default_settings
-      for k,v in self.regMap.items():
+      for k,v in self.odb_readback.items():
 
          regval = self.readRegister(v["memaddr"])
          basekey = k.split('/')[-1]
@@ -99,26 +100,19 @@ class RunControl(midas.frontend.EquipmentBase):
          elif v["datatype"] == "int":        # integer
             v["value"] = regval
 
-         if init:
-            if v["datatype"] == "boolset" or v["datatype"] == "intset":
-               for i in range(0, v["count"]):
-                  self.client.odb_set(f'{k}[{i}]', v["value"][i])
-                  self.client.odb_set(k.replace("Settings", "Readback"), v["value"][i])
-            else:
-               self.client.odb_set(k, v["value"])
-               self.client.odb_set(k.replace("Settings", "Readback"), v["value"])
+         if v["datatype"] == "boolset" or v["datatype"] == "intset":
+            for i in range(0, v["count"]):
+               self.client.odb_set(f'{k}[{i}]', v["value"][i])
+               if update_rw_settings:
+                  self.client.odb_set(f'{k.replace("Readback", "Settings")}[{i}]', v["value"][i])
          else:
-            if v["datatype"] == "boolset" or v["datatype"] == "intset":
-               for i in range(0, v["count"]):
-                  #if v["value"][i] != readback[basekey][i]:
-                  self.client.odb_set(f'{k.replace("Settings", "Readback")}[{i}]', v["value"][i])
-                  #print(f"scanRegister: set {k}[{i}] to {v['value'][i]}")
-            else:
-               #if v["value"] != readback[basekey]: 
-               self.client.odb_set(k.replace("Settings", "Readback"), v["value"])
+            self.client.odb_set(k, v["value"])
+            if update_rw_settings:
+               self.client.odb_set(k.replace("Readback", "Settings"), v["value"])
 
    def readout_func(self):
       self.scanRegisters()
+      """
       event = midas.event.Event()
       event.header.trigger_mask = midas.frontend.frontend_index
 
@@ -143,6 +137,7 @@ class RunControl(midas.frontend.EquipmentBase):
       event.create_bank("RCGL", midas.TID_INT, data)
 
       return event   
+      """
 
    #
    # watch callback for board startup mode
@@ -180,7 +175,7 @@ class RunControl(midas.frontend.EquipmentBase):
    # update FPGA registers from ODB keys changed by user
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
-      #print(f'ODB callback: {path}[{idx}] - new value {new_value}')
+      print(f'ODB callback: {path}[{idx}] - new value {new_value}')
       if self.command_in_progress:
          return
       if path == f"{self.odb_settings_dir}/Board startup mode":
@@ -192,29 +187,29 @@ class RunControl(midas.frontend.EquipmentBase):
          self.writeRegister(0, prev_adc & ~(prev_power ^ new_value))
          self.writeRegister(1, new_value)
          return
-      if idx == -1 or self.regMap[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
+      if idx == -1 or self.odb_settings[path]["mode"] != "RW":     # whole array assigned to ODB key or read-only register
          return
       if idx is not None:  # array element is changed
-         if self.regMap[path]["datatype"] == "boolset":
-            regval = self.readRegister(self.regMap[path]["memaddr"])
+         if self.odb_settings[path]["datatype"] == "boolset":
+            regval = self.readRegister(self.odb_settings[path]["memaddr"])
             if(new_value == 0):
                regval = ~(1<<idx) & regval
             else:
                regval = (1<<idx) | regval
-            self.writeRegister(self.regMap[path]["memaddr"], regval)
-         if self.regMap[path]["datatype"] == "intset":
-            memaddr = self.regMap[path]["memaddr"] + idx
+            self.writeRegister(self.odb_settings[path]["memaddr"], regval)
+         if self.odb_settings[path]["datatype"] == "intset":
+            memaddr = self.odb_settings[path]["memaddr"] + idx
             self.writeRegister(memaddr, new_value)
-      else:                
-         if self.regMap[path]["datatype"] == "int":
-            self.writeRegister(self.regMap[path]["memaddr"], new_value)
-         elif self.regMap[path]["datatype"] == "bitset":
-            regval = self.readRegister(self.regMap[path]["memaddr"])
-            mask = (2 ** self.regMap[path]["count"]) - 1
-            mask = ~(mask << self.regMap[path]["startBit"]) 
+      else:
+         if self.odb_settings[path]["datatype"] == "int":
+            self.writeRegister(self.odb_settings[path]["memaddr"], new_value)
+         elif self.odb_settings[path]["datatype"] == "bitset":
+            regval = self.readRegister(self.odb_settings[path]["memaddr"])
+            mask = (2 ** self.odb_settings[path]["count"]) - 1
+            mask = ~(mask << self.odb_settings[path]["startBit"]) 
             regval = regval & mask     # clear bitset
-            regval = regval | (new_value << self.regMap[path]["startBit"])
-            self.writeRegister(self.regMap[path]["memaddr"], regval)
+            regval = regval | (new_value << self.odb_settings[path]["startBit"])
+            self.writeRegister(self.odb_settings[path]["memaddr"], regval)
 
 class MyFrontend(midas.frontend.FrontendBase):
 
