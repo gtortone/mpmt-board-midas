@@ -472,12 +472,6 @@ function globalSet(key) {
 // RC functions
 //
 
-function Pulser_freq(value, element) {
-  let pulser = 1000 / value;
-  element.childNodes[0].value = pulser;
-  return true;
-}
-
 function SetClk(value) {
   mpmtid = localStorage.mpmtid;
   Paths = [
