@@ -51,6 +51,9 @@ class RunControl(midas.frontend.EquipmentBase):
       # init readback ODB structure
       self.client.odb_set(self.odb_readback_dir, conf.default_settings)
 
+      # dictionary for readback to use in readout_func
+      self.readback = {}
+
       self.set_status("Initializing...", "yellowLight")
 
       self.command_in_progress = False
@@ -101,43 +104,45 @@ class RunControl(midas.frontend.EquipmentBase):
             v["value"] = regval
 
          if v["datatype"] == "boolset" or v["datatype"] == "intset":
+            if self.readback.get(basekey, None) is None:
+               self.readback[basekey] = [0] * v["count"]
             for i in range(0, v["count"]):
+               self.readback[basekey][i] = v["value"][i]
                self.client.odb_set(f'{k}[{i}]', v["value"][i])
                if update_rw_settings:
                   self.client.odb_set(f'{k.replace("Readback", "Settings")}[{i}]', v["value"][i])
          else:
+            self.readback[basekey] = v["value"]
             self.client.odb_set(k, v["value"])
             if update_rw_settings:
                self.client.odb_set(k.replace("Readback", "Settings"), v["value"])
 
    def readout_func(self):
       self.scanRegisters()
-      """
       event = midas.event.Event()
       event.header.trigger_mask = midas.frontend.frontend_index
 
       data = []
-      data.append(int(self.settings['Enable ADC sampling']))
-      data.append(int(self.settings['Power enable']))
-      data.append(int(self.settings['Overcurrent']))
+      data.append(int(self.readback['Enable ADC sampling']))
+      data.append(int(self.readback['Power enable']))
+      data.append(int(self.readback['Overcurrent']))
       for idx in range(0,19):
-         data.append(int(self.settings['Channel ratemeter'][idx]))
+         data.append(int(self.readback['Channel ratemeter'][idx]))
 
       event.create_bank("RCCH", midas.TID_INT, data)
 
       data = []
       #data.append(int(self.readRegister(3)))          # clock diagnostic bits
-      data.append(int(self.settings['PPS counter']))
-      data.append(int(self.settings['Unix timestamp']))
-      data.append(int(self.settings['Enable PPS event']))
-      data.append(int(self.settings['Enable ADC calibration']))
-      data.append(int(self.settings['Pulser period']))
-      data.append(int(self.settings['Dead time']))
+      data.append(int(self.readback['PPS counter']))
+      data.append(int(self.readback['Unix timestamp']))
+      data.append(int(self.readback['Enable PPS event']))
+      data.append(int(self.readback['Enable ADC calibration']))
+      data.append(int(self.readback['Pulser period']))
+      data.append(int(self.readback['Dead time']))
       
       event.create_bank("RCGL", midas.TID_INT, data)
 
       return event   
-      """
 
    #
    # watch callback for board startup mode
@@ -175,10 +180,12 @@ class RunControl(midas.frontend.EquipmentBase):
    # update FPGA registers from ODB keys changed by user
    #
    def detailed_settings_changed_func(self, path, idx, new_value):
-      print(f'ODB callback: {path}[{idx}] - new value {new_value}')
+      #print(f'ODB callback: {path}[{idx}] - new value {new_value}')
       if self.command_in_progress:
          return
       if path == f"{self.odb_settings_dir}/Board startup mode":
+         return
+      if path == f"{self.odb_settings_dir}/Grid display":
          return
       # if 'Power enable' register is changed power off changed bits on 'Enable ADC sampling' register
       if path == f"{self.odb_settings_dir}/Power enable":
