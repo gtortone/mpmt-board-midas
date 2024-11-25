@@ -114,9 +114,9 @@
             html += `
                <td>
                   <div class="param${ch}" style="${style}">
-                  <button class="smlabel" onclick='call_cmd(${ch+1}, "on")'>ON</button>
-                  <button class="smlabel" onclick='call_cmd(${ch+1}, "off")'>OFF</button>
-                  <button class="smlabel" onclick='call_cmd(${ch+1}, "reset")'>RESET</button>
+                  <button class="smlabel" onclick='call_control(${ch+1}, "on")'>ON</button>
+                  <button class="smlabel" onclick='call_control(${ch+1}, "off")'>OFF</button>
+                  <button class="smlabel" onclick='call_control(${ch+1}, "reset")'>RESET</button>
                   </div>
                </td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Vset'].min}  max=${settings_table['Vset'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]" data-validate="validateInput"></div></td>`;

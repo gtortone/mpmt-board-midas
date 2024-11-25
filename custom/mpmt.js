@@ -409,14 +409,14 @@ function call_set_adc_all(value) {
   });
 }
 
-function call_cmd(ch, label) {
+function call_control(ch, label) {
 
   mpmtid = localStorage.mpmtid;
 
   let params = Object()
   params.client_name = `hvfe${mpmtid}`
-  params.cmd = "cmd"
-  jargs = {"channel": ch, "cmd": label}
+  params.cmd = "control"
+  jargs = {"channel": ch, "command": label}
   params.args = JSON.stringify(jargs);
    
   mjsonrpc_call("jrpc", params).then(function(rpc) {
