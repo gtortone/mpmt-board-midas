@@ -144,6 +144,7 @@
          });   // end modules.map()
          document.getElementById("channels").innerHTML = html;
          refresh_channels_status(undefined);
+         setInterval(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
          mhttpd_init("MPMT control panel", 2000);
 
         document.getElementById("id1").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/On-board temperature`)
@@ -162,11 +163,11 @@
         document.getElementById("id14").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/PPS OK`)
         document.getElementById("id15").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/PPS OK`)
         document.getElementById("id16").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Unix timestamp aligned`)
-        document.getElementById("id17").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Enable PPS event`)
-        document.getElementById("id18").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Enable ADC calibration`)
+        document.getElementById("id17").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable PPS event`)
+        document.getElementById("id18").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Enable ADC calibration`)
         document.getElementById("adc_mask").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Enable ADC sampling`)
         document.getElementById("power_mask").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Power enable`)
-        document.getElementById("id21").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Pulser period`)
+        document.getElementById("id21").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Settings/Pulser period`)
         document.getElementById("id24").setAttribute("data-odb-path", `/Equipment/MPMT-RunControl${mpmtid}/Readback/Dead time`)
 
      } // end init
@@ -473,7 +474,7 @@
               </td>
             </tr>
             <tr>
-              <th class="left">ADC Calibration</th>
+              <th class="left">ADC calibration</th>
               <td style="text-align: center">
                 <input id="id18"
                   type="checkbox"
@@ -504,16 +505,25 @@
               </td>
             </tr>
             <tr>
-              <th class="left">Pulser Freq (Hz)</th>
+              <th class="left">Pulser frequency (Hz)</th>
               <td>
-                <div id="id21"
-                  name="modbvalue"
-                  data-odb-editable="1"
-                  min="0"
-                  max="1000"
-                  data-formula="1000/x"
-                  data-validate="Pulser_freq"
-                ></div>
+                <select id="id21"
+                  name="modbselect">
+                  <option value="0">off</option>
+                  <option value="1">1000</option>
+                  <option value="2">500</option>
+                  <option value="4">250</option>
+                  <option value="5">200</option>
+                  <option value="8">125</option>
+                  <option value="10">100</option>
+                  <option value="20">50</option>
+                  <option value="25">40</option>
+                  <option value="50">20</option>
+                  <option value="100">10</option>
+                  <option value="200">5</option>
+                  <option value="500">2</option>
+                  <option value="1000">1</option>
+                </select>
               </td>
             </tr>
             <tr>

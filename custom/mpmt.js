@@ -45,7 +45,7 @@ let settings_table = {
    },
    "Limit T" : {
       "msg": "Enter temperature limit: ",
-      "unit": "mV",
+      "unit": "C",
       "min": 20,
       "max": 70 
    },
@@ -146,8 +146,6 @@ function refresh_channels_status(arg) {
    jarg.adc.forEach( (value, ch) => {
       document.getElementById(`adc${ch}`).checked = value
    });
-
-   setTimeout(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
 }
 
 function getOnModulesList() {
@@ -473,12 +471,6 @@ function globalSet(key) {
 //
 // RC functions
 //
-
-function Pulser_freq(value, element) {
-  let pulser = 1000 / value;
-  element.childNodes[0].value = pulser;
-  return true;
-}
 
 function SetClk(value) {
   mpmtid = localStorage.mpmtid;
