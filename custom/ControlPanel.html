@@ -144,6 +144,7 @@
          });   // end modules.map()
          document.getElementById("channels").innerHTML = html;
          refresh_channels_status(undefined);
+         setInterval(hvfe_rpc.bind(null, "get_channels_status", {}, refresh_channels_status, 1000), 2000);
          mhttpd_init("MPMT control panel", 2000);
 
         document.getElementById("id1").setAttribute("data-odb-path", `/Equipment/MPMT-Sensors${mpmtid}/Settings/On-board temperature`)
