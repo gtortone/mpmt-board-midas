@@ -323,25 +323,25 @@ class HighVoltage(midas.frontend.EquipmentBase):
          ret_int = midas.status_codes["SUCCESS"]
          ret_str = json.dumps({"result": f'ok'})
 
-      elif cmd == "cmd":
+      elif cmd == "control":
          jargs = json.loads(args)
          ch = jargs.get("channel")
-         cmd = jargs.get("cmd").lower()
+         command = jargs.get("command").lower()
          if (not self.channel_is_valid(ch)):
             ret_int = midas.status_codes["FE_ERR_DRIVER"]
             ret_str = json.dumps({"result": f'channel {ch} not valid'})
-         elif cmd not in ["on", "off", "reset"]:
+         elif command not in ["on", "off", "reset"]:
             ret_int = midas.status_codes["FE_ERR_DRIVER"]
-            ret_str = json.dumps({"result": f'command {cmd} not valid'})
+            ret_str = json.dumps({"result": f'command {command} not valid'})
          else:
-            #print(ch, cmd)
+            #print(ch, command)
             if self.param.mode == "rtu":
                self.mutex.acquire()
-            if cmd == "on":
+            if command == "on":
                self.hv.powerOn(ch)
-            elif cmd == "off":
+            elif command == "off":
                self.hv.powerOff(ch)
-            elif cmd == "reset":
+            elif command == "reset":
                self.hv.reset(ch)
             if self.param.mode == "rtu":
                self.mutex.release()
