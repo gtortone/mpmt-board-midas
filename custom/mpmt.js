@@ -409,7 +409,7 @@ function call_set_adc_all(value) {
   });
 }
 
-function call_control(ch, label) {
+function call_control(ch, label, popup=true) {
 
   mpmtid = localStorage.mpmtid;
 
@@ -422,9 +422,9 @@ function call_control(ch, label) {
   mjsonrpc_call("jrpc", params).then(function(rpc) {
     let [status, reply] = parse_rpc_response(rpc.result);
     if (status == 1) {
-      showSuccess();
+      popup && showSuccess();
     } else {
-      showFailure()
+      popup && showFailure()
     }
   }).catch(function(error) {
     mjsonrpc_error_alert(error);
@@ -434,6 +434,17 @@ function call_control(ch, label) {
 //
 // helpers
 //
+
+function shutdown_hv_all() {
+   mpmtid = localStorage.mpmtid;
+   if(authuser()) {
+     online_channels.forEach( async (online, ch) => {
+        if(online)
+           await call_control(ch, "off", popup=false);
+     });
+     showSuccess()
+   }
+}
 
 function validateInput(value, element) {
    if (parseInt(value) < parseInt(element.getAttribute('min')) || parseInt(value) > parseInt(element.getAttribute('max'))) {

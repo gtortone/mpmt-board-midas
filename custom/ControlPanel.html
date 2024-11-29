@@ -55,6 +55,16 @@
         clear: both;
         display: table;
       }
+      .header-button {
+         text-align: center;
+         text-decoration: none;
+         display: inline-block;
+         font-size: 16px;
+         margin: 4px 2px;
+         padding: 8px 8px;
+         cursor: pointer;
+         border-radius: 8px;
+      }
     </style>
 
     <script>
@@ -76,8 +86,11 @@
         html += '<tr><th colspan="19" class="mtableheader">mPMT Channels control</th></tr>';
         html += "<tr>";
         html += '<td colspan="19" style="text-align: center">';
-        html += '<button class="mbutton" onclick="set_enable_all(true)">Power all</button>';
-        html += '<button class="mbutton" onclick="set_enable_adc_all(true)">Power and Enable all</button>';
+        html += '<div>'
+        html += '<button class="button header-button" onclick="set_enable_all(true)">Power all</button>';
+        html += '<button class="button header-button" onclick="set_enable_adc_all(true)">Power and Enable all</button>';
+        html += '<button class="button header-button" style="background-color: red; color: yellow;"onclick="shutdown_hv_all()"><b>Shutdown HV all</b></button>';
+        html += '</div>'
         html += "</td></tr>";
         html += "<tr>";
         html += "<th> CH# </th>";
