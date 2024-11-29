@@ -269,7 +269,7 @@ function parse_rpc_response(rpc_result) {
 
 function alert_rpc_error(status, reply) {
    if(hvfe_running)
-      dlgAlert("Failed to perform action!<div style='text-align:left'><br>Status code: " + status + "<br>Message: " + reply + "</div>"); 
+      showFailure("Failed to perform action! Status code: " + status); 
 }
 
 function toggle_enable_bit(ch) {
