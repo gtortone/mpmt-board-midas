@@ -440,7 +440,7 @@ function shutdown_hv_all() {
    if(authuser()) {
      online_channels.forEach( async (online, ch) => {
         if(online)
-           await call_control(ch, "off", popup=false);
+           await call_control(ch+1, "off", popup=false);
      });
      showSuccess()
    }
