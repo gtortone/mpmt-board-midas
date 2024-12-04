@@ -119,7 +119,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
          self.adc_channels[addr-1] = adc
          self.enabled_channels[addr-1] = status
          if status:
-            if(self.hv.probe(addr)):
+            if(self.hv.open(addr)):
                self.online_channels[addr-1] = True
             else:
                self.online_channels[addr-1] = False 
