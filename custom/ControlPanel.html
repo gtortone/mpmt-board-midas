@@ -119,7 +119,7 @@
             // build channel table
             style = "";
             html += `<tr id="channel${ch}">`;
-            html += `<td class="modbbox ledbig" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Online[${ch}]" data-color="lightgreen" data-background-color="red">${ch+1}</td>`;
+            html += `<td class="modbbox ledbig" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Readback/Online[${ch}]" data-color="lightgreen" data-background-color="red">${ch+1}</td>`;
             html += `<td style="text-align: center"><button id="pwrbtn${ch}" onclick="toggle_enable_bit(${ch+1})"></button></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Channel ratemeter[${ch}]"></div></td>`;
             html += `<td><div class="param${ch} modbbox ledbig" style="${style}" data-odb-path="/Equipment/MPMT-RunControl${mpmtid}/Readback/Overcurrent" data-color="lightgreen" data-background-color="red" data-formula="getOC(x, ${ch})"></div></td>`;
@@ -133,13 +133,13 @@
                   </div>
                </td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Vset'].min}  max=${settings_table['Vset'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Vset[${ch}]" data-validate="validateInput"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/V[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Readback/V[${ch}]"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Trigger threshold'].min}  max=${settings_table['Trigger threshold'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trigger threshold[${ch}]" data-validate="validateInput"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/I[${ch}]"></div></td>`;
-            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/T[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Readback/I[${ch}]"></div></td>`;
+            html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Readback/T[${ch}]"></div></td>`;
             html += `<td style="text-align: center">
                <div class="param${ch}" id="state${ch}"></div>
-               <div style="display: none" id="_state${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Status[${ch}]" onchange="renderChannelState(${ch},this.value)" onload="onchange()"></div>
+               <div style="display: none" id="_state${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Readback/Status[${ch}]" onchange="renderChannelState(${ch},this.value)" onload="onchange()"></div>
             </td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Rate up'].min}  max=${settings_table['Rate up'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate up[${ch}]" data-validate="validateInput"></div></td>`;
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Rate down'].min}  max=${settings_table['Rate down'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Rate down[${ch}]" data-validate="validateInput"></div></td>`;
@@ -149,7 +149,7 @@
             html += `<td><div class="param${ch}" style="${style}" name="modbvalue" data-odb-editable="1" min=${settings_table['Trip time'].min}  max=${settings_table['Trip time'].max} data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Trip time[${ch}]" data-validate="validateInput"></div></td>`;
             html += `<td style="text-align: center">
                <div class="param${ch}" id="alarm${ch}"></div>
-               <div style="display: none" id="_alarm${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Settings/Alarm[${ch}]" onchange="renderChannelAlarm(${ch},this.value)" onload="onchange()"></div>
+               <div style="display: none" id="_alarm${ch}" name="modbvalue" data-odb-path="/Equipment/MPMT-HighVoltage${mpmtid}/Readback/Alarm[${ch}]" onchange="renderChannelAlarm(${ch},this.value)" onload="onchange()"></div>
             </td>`;
             html += "</tr>";
 
