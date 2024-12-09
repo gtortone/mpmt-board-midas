@@ -77,9 +77,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
       # communication thread to spin the wheel of client.communicate()
       self.cthread = threading.Thread(target=self.communicate, args=(self,))
  
-      # set online HV modules
-      self.refresh_online_channels()
-      
       # initialize registers map
       conf.configRegisters(self.odb_settings_dir)
       self.regMap = conf.registers
@@ -110,27 +107,8 @@ class HighVoltage(midas.frontend.EquipmentBase):
    def writeRegister(self, offset, value):
       self.regs[offset] = value
 
-   def refresh_online_channels(self):
-      hv_adc_channels = self.readRegister(0)
-      hv_enabled_channels = self.readRegister(1)
-      for addr in range(1,20):
-         adc = (hv_adc_channels & (1<<(addr-1)) > 0)
-         status = (hv_enabled_channels & (1<<(addr-1)) > 0)
-         self.adc_channels[addr-1] = adc
-         self.enabled_channels[addr-1] = status
-         if status:
-            if(self.hv.open(addr)):
-               self.online_channels[addr-1] = True
-            else:
-               self.online_channels[addr-1] = False 
-         else:
-            self.online_channels[addr-1] = False
-      # copy online channels to ODB
-      self.client.odb_set(f'{self.odb_settings_dir}/Online', self.online_channels)
-
    def monitor(self, this):
       while True:
-         self.refresh_online_channels()
          this.updateODB()
          time.sleep(2)
 
@@ -142,54 +120,52 @@ class HighVoltage(midas.frontend.EquipmentBase):
    # update ODB keys from HV Modbus registers
    #
    def updateODB(self, update_rw_settings=False):
-      settings = copy.deepcopy(conf.scratch_ro_settings)
-      if update_rw_settings is True:    # update read-only and read-write settings
-         settings.update(copy.deepcopy(conf.scratch_rw_settings))
+      readback = copy.deepcopy(conf.scratch_ro_settings)
+      settings = {}
 
+      hv_adc_channels = self.readRegister(0)
+      hv_enabled_channels = self.readRegister(1)
       for addr in range(1,20):
-         # check if HV module is connected and powered
-         if self.online_channels[addr-1]:
+
+         adc = (hv_adc_channels & (1<<(addr-1)) > 0)
+         status = (hv_enabled_channels & (1<<(addr-1)) > 0)
+         self.adc_channels[addr-1] = adc
+         self.enabled_channels[addr-1] = status
+
+         # check if HV channel is online or just powered
+         if self.online_channels[addr-1] or status == True:
             comerr = False
-            hvmon = None
-            if self.param.mode == "tcp":
-               hvmon = HVModbus(self.param)
-            else:
-               hvmon = self.hv
 
             if self.param.mode == "rtu":
                self.mutex.acquire()
 
             try:
-               monData = hvmon.readMonRegisters(addr)
+               monData = self.hv.readMonRegisters(addr)
             except:
                comerr = True
-               if self.settings["Report Modbus errors"] == True:
-                  self.client.msg(f"HV Modbus communication error on address {addr}", is_error=True)
+               # channel is online and has errors
+               if self.online_channels[addr-1] and self.settings["Report Modbus errors"] == True:
+                  self.client.msg(f"HV Modbus communication error on channel {addr}", is_error=True)
 
             if self.param.mode == "rtu":
                self.mutex.release()
 
-            if monData is None or comerr == True:  # skip this update
+            if monData is None or comerr == True:  # skip this update - channel is offline
+               self.online_channels[addr-1] = False 
                continue
 
-            settings["Status"][addr-1] = monData['status']
-            settings["V"][addr-1] = monData['V']
-            settings["I"][addr-1] = monData['I']
-            settings["T"][addr-1] = monData['T']
-            settings["Alarm"][addr-1] = monData['alarm']
+            self.online_channels[addr-1] = True
+
+            readback["V"][addr-1] = monData['V']
+            readback["I"][addr-1] = monData['I']
+            readback["T"][addr-1] = monData['T']
+            readback["Status"][addr-1] = monData['status']
+            readback["Alarm"][addr-1] = monData['alarm']
+
             new_channel = self.online_channels[addr-1] == True and self.prev_online_channels[addr-1] == False
-            if update_rw_settings: # include read-write settings also
-               settings["Vset"][addr-1] = monData['Vset']
-               settings["Rate up"][addr-1] = monData['rateUP']
-               settings["Rate down"][addr-1] = monData['rateDN']
-               settings["Limit V"][addr-1] = monData['limitV']
-               settings["Limit I"][addr-1] = monData['limitI']
-               settings["Limit T"][addr-1] = monData['limitT']
-               settings["Trip time"][addr-1] = monData['limitTRIP']
-               settings["Trigger threshold"][addr-1] = monData['threshold']
-            if new_channel:
-               for k in conf.scratch_rw_settings.keys():
-                  settings[k] = self.settings[k]   # copy current rw settings
+            if new_channel or update_rw_settings:
+               if len(settings.items()) == 0:
+                  settings = copy.deepcopy(self.settings)
                settings["Vset"][addr-1] = monData['Vset']
                settings["Rate up"][addr-1] = monData['rateUP']
                settings["Rate down"][addr-1] = monData['rateDN']
@@ -200,7 +176,10 @@ class HighVoltage(midas.frontend.EquipmentBase):
                settings["Trigger threshold"][addr-1] = monData['threshold']
 
       self.prev_online_channels = copy.deepcopy(self.online_channels)
-      self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
+      if len(settings.items()) == 0:
+         self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
+      self.client.odb_set(f'{self.odb_settings_dir.replace("Settings", "Readback")}', readback, remove_unspecified_keys=False)
+      self.client.odb_set(f'{self.odb_settings_dir.replace("Settings", "Readback")}/Online', self.online_channels)
 
    #
    # update Modbus registers from ODB keys changed by user
@@ -212,8 +191,6 @@ class HighVoltage(midas.frontend.EquipmentBase):
          return
       if path == f'{self.odb_settings_dir}/Report Modbus errors':
          return
-      if path == f'{self.odb_settings_dir}/Online':
-         return
       if path == f'{self.odb_settings_dir}/Grid display':
          return
  
@@ -221,38 +198,34 @@ class HighVoltage(midas.frontend.EquipmentBase):
          return
       addr = idx+1
       if idx is not None:  # array element is changed
-         if not self.settings["Online"][idx]:
-            self.client.msg(f"HV module {addr} is offline", is_error=True)
+         if not self.online_channels[idx]:
+            self.client.msg(f"HV channel {addr} is offline", is_error=True)
             return
-         # module is online and register is read-write, update register value
+         # channel is online and register is read-write, update register value
          #print(f'{path} {idx} {new_value}')
          self.mutex.acquire()
          try:
             self.regMap[path]["func"](int(new_value), addr)
             #print(path, new_value, addr)
          except Exception as e:
-            self.client.msg(f"Error writing to HV module {addr}", is_error=True)
-            # request update of all registers to prevent stale values in ODB
-            #self.updateODB(update_rw_settings=True)
+            self.client.msg(f"Error writing to HV channel {addr}", is_error=True)
          self.mutex.release()
 
    def readout_func(self):
       # add parameter to skip event buildint
-      """
       event = midas.event.Event()
       event.header.trigger_mask = midas.frontend.frontend_index
+      readback = self.client.odb_get(f'{self.odb_settings_dir.replace("Settings", "Readback")}')
 
-      hvOnline = self.settings['Online']
-      hvPower = self.readRegister(1)
       for idx in range(0,19):
-         # check if HV module is probed and powered
-         if hvOnline[idx] and (hvPower & (1<<idx) > 0):
+         # check if HV channel is probed and powered
+         if self.online_channels[idx]:
             data = []
-            data.append(self.settings["Status"][idx])
-            data.append(self.settings["V"][idx])
-            data.append(self.settings["I"][idx])
-            data.append(self.settings["T"][idx])
-            data.append(self.settings["Alarm"][idx])
+            data.append(readback["Status"][idx])
+            data.append(readback["V"][idx])
+            data.append(readback["I"][idx])
+            data.append(readback["T"][idx])
+            data.append(readback["Alarm"][idx])
             data.append(self.settings["Vset"][idx])
             data.append(self.settings["Rate up"][idx])
             data.append(self.settings["Rate down"][idx])
@@ -262,10 +235,9 @@ class HighVoltage(midas.frontend.EquipmentBase):
             data.append(self.settings["Trip time"][idx])
             data.append(self.settings["Trigger threshold"][idx])
             
-            event.create_bank(f"HV{str(idx).zfill(2)}", midas.TID_FLOAT, data)
-      
+            event.create_bank(f"HV{str(idx+1).zfill(2)}", midas.TID_FLOAT, data)
+
       return event
-      """
 
    # RPC functions
    # HV channels number: [1...19]

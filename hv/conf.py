@@ -6,7 +6,8 @@ scratch_ro_settings = {
    "V": [0.0] * 19,
    "I": [0.0] * 19,
    "T": [0.0] * 19,
-   "Alarm": [0] * 19
+   "Alarm": [0] * 19,
+   "Online": [False] * 19,
 }
 
 scratch_rw_settings = {
@@ -24,12 +25,7 @@ default_settings = {
    "RTU mode": False,
    "Port device": "/dev/ttyPS2",
    "Report Modbus errors": False, 
-   "Online": [False] * 19,
-   "Status": [0] * 19,
    "Vset": [0.0] * 19,
-   "V": [0.0] * 19,
-   "I": [0.0] * 19,
-   "T": [0.0] * 19,
    "Rate up": [0] * 19,
    "Rate down": [0] * 19,
    "Limit V": [0] * 19,
@@ -37,7 +33,6 @@ default_settings = {
    "Limit T": [0] * 19,
    "Trip time": [0] * 19,
    "Trigger threshold": [0] * 19,
-   "Alarm": [0] * 19,
    "Names": [ "Status", "V", "Power command", "T", "I", "Vset", "Rate up", "Rate down", "Limit V", "Limit I",
                "Limit T", "Trip time", "Trigger threshold", "Alarm"
             ],
@@ -45,24 +40,6 @@ default_settings = {
 
 def configRegisters(basepath):
 
-   # read only
-   registers[f'{basepath}/Status'] = {
-      "mode": "R",
-   }
-   registers[f'{basepath}/V'] = {
-      "mode": "R",
-   }
-   registers[f'{basepath}/I'] = {
-      "mode": "R",
-   }
-   registers[f'{basepath}/T'] = {
-      "mode": "R",
-   }
-   registers[f'{basepath}/Alarm'] = {
-      "mode": "R",
-   }
-   
-   # read write
    registers[f'{basepath}/Power command'] = {
       "mode": "RW",
    }
