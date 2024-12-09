@@ -10,12 +10,12 @@ This MIDAS frontend provides data from Run Control registers.
 |```Enable ADC sampling	```|int|Enable ADC acquisition for channel index|
 |```Power enable```|int|Power channel index|
 |```Overcurrent```|int|Overcurrent on channel index|
-|```Clock A OK```|book|Reference clock A status ok|
-|```Clock A lost```|book|Reference clock A lost|
-|```Clock A found```|book|Reference clock A found|
-|```Clock B OK```|book|Reference clock B status ok|
-|```Clock B lost```|book|Reference clock B lost|
-|```Clock B found```|book|Reference clock B found|
+|```Clock A OK```|bool|Reference clock A status ok|
+|```Clock A lost```|bool|Reference clock A lost|
+|```Clock A found```|bool|Reference clock A found|
+|```Clock B OK```|bool|Reference clock B status ok|
+|```Clock B lost```|bool|Reference clock B lost|
+|```Clock B found```|bool|Reference clock B found|
 |```Clock A-B auto select```|int|Automatic selection of reference clock|
 |```Reference clock A-B select```|int|Manual selection of reference clock (0=A, 1=B)|
 |```Reference clock A-B select```|int|Reference clock multiplexer status (0=A, 1=B)|
@@ -25,7 +25,7 @@ This MIDAS frontend provides data from Run Control registers.
 |```PLL locked```|bool|200 MHz PLL locked|
 |```PLL reset```|bool|Reset flag for PLL not locked|
 |```Clock fail```|bool|Clock failure|
-|```PPS OK```|book|PPS received on reference clock line|
+|```PPS OK```|bool|PPS received on reference clock line|
 |```Unix timestamp aligned```|bool|Unix timestamp and PPS counter aligned|
 |```PPS counter```|int|PPS counter|
 |```Unix timestamp```|int|Unix timestamp|
