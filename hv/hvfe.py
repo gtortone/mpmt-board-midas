@@ -164,6 +164,7 @@ class HighVoltage(midas.frontend.EquipmentBase):
 
             new_channel = self.online_channels[addr-1] == True and self.prev_online_channels[addr-1] == False
             if new_channel or update_rw_settings:
+               print(f"read monitoring data... {addr-1}")
                if len(settings.items()) == 0:
                   settings = copy.deepcopy(self.settings)
                settings["Vset"][addr-1] = monData['Vset']
@@ -175,8 +176,10 @@ class HighVoltage(midas.frontend.EquipmentBase):
                settings["Trip time"][addr-1] = monData['limitTRIP']
                settings["Trigger threshold"][addr-1] = monData['threshold']
 
+      print(settings)
+
       self.prev_online_channels = copy.deepcopy(self.online_channels)
-      if len(settings.items()) == 0:
+      if len(settings.items()) != 0:
          self.client.odb_set(f'{self.odb_settings_dir}', settings, remove_unspecified_keys=False)
       self.client.odb_set(f'{self.odb_settings_dir.replace("Settings", "Readback")}', readback, remove_unspecified_keys=False)
       self.client.odb_set(f'{self.odb_settings_dir.replace("Settings", "Readback")}/Online', self.online_channels)
